@@ -82,7 +82,7 @@
             z-index: 999;
         }
     </style>
-    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <canvas id="pitch"></canvas>
@@ -154,24 +154,27 @@
     <script>
         const canvas = document.getElementById("pitch");
         const ctx = canvas.getContext("2d");
-        const CLIENT_ID = '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com'; // Ersätt med ditt Client ID
-        const API_KEY = 'AIzaSyA1fAReucSRYuVmGslyczgI9y_wpUb3hZA';     // Ersätt med ditt API-nyckel
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
-        let gapiInitialized = false;
+        // Initiera Google Identity Services
+        function initGoogleIdentityServices() {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file',
+                callback: (response) => {
+                    console.log('Autentisering lyckades:', response);
+                    // Spara token eller gör API-anrop här
+                },
+            });
 
-        // Initiera Google API
-        function initGoogleAPI() {
-          gapi.load('client:auth2', () => {
-            gapi.client.init({
-              apiKey: API_KEY,
-              clientId: CLIENT_ID,
-              scope: SCOPES,
-            }).then(() => {
-              gapiInitialized = true;
-              console.log('Google API initierat.');
-            }).catch(error => console.error('Google API-initieringsfel:', error));
-          });
+            // Lägg till en knapp för inloggning
+            const loginButton = document.createElement("button");
+            loginButton.textContent = "Logga in med Google";
+            loginButton.style = "padding: 10px; margin: 10px;";
+            loginButton.onclick = () => {
+                client.requestAccessToken();
+            };
+
+            document.body.appendChild(loginButton);
         }
 
         const shots = [];
@@ -796,7 +799,7 @@
             drawPitch();
             updateButtonLabels();
             resizeCanvas();
-            initGoogleAPI();
+            initGoogleIdentityServices();
         };
 
         window.onresize = resizeCanvas;
