@@ -182,12 +182,12 @@
 
         const shots = [];
         const categorySettings = {
-            "m": { label: "Mål", color: "orange" },
-            "p": { label: "Skott på mål", color: "blue" },
-            "u": { label: "Skott utanför mål", color: "red" },
-            "b": { label: "Blockerat skott", color: "black" },
-            "a": { label: "Assist", color: "purple" },
-            "n": { label: "Nyckelpass", color: "yellow" }
+            "M": { label: "Mål", color: "orange" },
+            "P": { label: "Skott på mål", color: "blue" },
+            "U": { label: "Skott utanför mål", color: "red" },
+            "B": { label: "Blockerat skott", color: "black" },
+            "A": { label: "Assist", color: "purple" },
+            "N": { label: "Nyckelpass", color: "yellow" }
         };
         let matchInfo = {
             home_or_away: "",
@@ -352,8 +352,8 @@
         }
 
         function getCurrentResult() {
-            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "m").length;
-            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "m").length;
+            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "M").length;
+            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "M").length;
             return `${vdifGoals} - ${opponentGoals}`;
         }
 
@@ -405,7 +405,7 @@
 
             let assist = null;
             if (formattedCategory === "assist") {
-                const goals = shots.filter(s => s.category === "m" && s.side === side);
+                const goals = shots.filter(s => s.category === "M" && s.side === side);
                 if (goals.length > 0) {
                     const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
                     const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
@@ -682,40 +682,86 @@
             console.log(`Data sparat lokalt som ${fileName}`);
         }
 
-        // Spara till Google Drive
-        function saveToGoogleDrive(file) {
+        // Spara till specifik mapp på Google Drive
+        function saveToDriveInFolder(blob, fileName, folderName) {
             const accessToken = google.accounts.oauth2.getToken()?.access_token;
 
             if (!accessToken) {
-                alert("Det gick inte att få en giltig åtkomsttoken. Logga in och försök igen.");
+                alert("Ingen giltig åtkomsttoken. Logga in och försök igen.");
                 return;
             }
 
+            // Kontrollera om mappen redan finns
+            fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
+                method: "GET",
+                headers: new Headers({ Authorization: `Bearer ${accessToken}` })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.files && data.files.length > 0) {
+                        // Mappen finns, använd första träffen
+                        const folderId = data.files[0].id;
+                        uploadFileToDrive(blob, fileName, folderId);
+                    } else {
+                        // Skapa mappen om den inte finns
+                        createDriveFolder(folderName, accessToken).then(folderId => {
+                            uploadFileToDrive(blob, fileName, folderId);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Fel vid sökning efter mapp:", error);
+                    alert("Det gick inte att söka efter mappen på Google Drive.");
+                });
+        }
+
+        // Skapa mapp på Google Drive
+        function createDriveFolder(folderName, accessToken) {
+            return fetch("https://www.googleapis.com/drive/v3/files", {
+                method: "POST",
+                headers: new Headers({
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json"
+                }),
+                body: JSON.stringify({
+                    name: folderName,
+                    mimeType: "application/vnd.google-apps.folder"
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`Mapp '${folderName}' skapad med ID: ${data.id}`);
+                    return data.id;
+                })
+                .catch(error => {
+                    console.error("Fel vid skapande av mapp:", error);
+                    alert("Det gick inte att skapa mappen på Google Drive.");
+                    throw error;
+                });
+        }
+
+        // Ladda upp fil till Google Drive
+        function uploadFileToDrive(blob, fileName, folderId) {
+            const accessToken = google.accounts.oauth2.getToken()?.access_token;
+
             const metadata = {
-                name: file.name,
-                mimeType: file.type,
+                name: fileName,
+                parents: [folderId],
+                mimeType: blob.type
             };
 
             const formData = new FormData();
-            formData.append(
-                "metadata",
-                new Blob([JSON.stringify(metadata)], { type: "application/json" })
-            );
-            formData.append("file", file);
+            formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+            formData.append("file", blob);
 
             fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
                 method: "POST",
                 headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
-                body: formData,
+                body: formData
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Fel vid uppladdning till Google Drive");
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    alert(`Filen har sparats på Google Drive! Fil-ID: ${data.id}`);
+                    alert(`Filen har sparats på Google Drive i mappen '${metadata.parents}'. Fil-ID: ${data.id}`);
                     console.log("Drive-respons:", data);
                 })
                 .catch(error => {
@@ -758,12 +804,12 @@
 
         // Kartläggning för att översätta kategorier från JSON till interna nycklar
         const jsonToCategory = {
-            "goal": "m",
-            "on goal": "p",
-            "miss": "u",
-            "blockerat skott": "b",
-            "assist": "a",
-            "nyckelpass": "n"
+            "goal": "M",
+            "on goal": "P",
+            "miss": "U",
+            "blockerat skott": "B",
+            "assist": "A",
+            "nyckelpass": "N"
         };
 
         // Funktion för att uppdatera inputfälten
