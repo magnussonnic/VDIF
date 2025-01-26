@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Fotbollsplan med Knappar</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            touch-action: none;
+        }
+        #controls-left, #controls-right {
+            position: absolute;
+            top: 50%; /* Centrera vertikalt */
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column; /* Knappar ovanpå varandra */
+            gap: 10px;
+        }
+        #controls-left {
+            left: 10px;
+        }
+        #controls-right {
+            right: 10px;
+        }
+        #controls-left button, #controls-right button {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #controls-left button:hover, #controls-right button:hover {
+            background-color: #0056b3;
+        }
+        #popup-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        #popup-modal h2 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        #popup-modal .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+        #popup-modal button {
+            margin: 5px;
+        }
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pitch"></canvas>
+
+    <!-- Knappar på vänster sida -->
+    <div id="controls-left">
+        <button id="vdif-freekicks">F: 0</button> <!-- Frisparkar VDIF -->
+        <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
+        <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
+        <button id="fasta-situationer">Fasta</button> <!-- Ny knapp -->
+        <button id="enter-match-info">Info</button>
+        <button id="delete-last-shot">Ångra</button>
+    </div>
+
+    <!-- Knappar på höger sida -->
+    <div id="controls-right">
+        <button id="opponent-freekicks">F: 0</button> <!-- Frisparkar Motståndare -->
+        <button id="opponent-corners">H: 0</button>   <!-- Hörnor Motståndare -->
+        <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
+        <button id="placeholder"></button>
+        <button id="save-data">Spara</button>
+        <button id="load-data">Ladda</button>
+    </div>
+
+    <!-- Popup Modal -->
+    <div id="overlay"></div>
+    <div id="popup-modal">
+        <h2>Fasta Situationer</h2>
+        <div class="row">
+            <span>Frisparkar VDIF:</span>
+            <button onclick="updateSetPieces('Frisparkar VDIF', -1)">-</button>
+            <input type="number" id="frisparkar-vdif" value="0" min="0" onchange="manualSetPieceUpdate('Frisparkar VDIF')">
+            <button onclick="updateSetPieces('Frisparkar VDIF', 1)">+</button>
+        </div>
+        <div class="row">
+            <span>Hörnor VDIF:</span>
+            <button onclick="updateSetPieces('Corners VDIF', -1)">-</button>
+            <input type="number" id="corners-vdif" value="0" min="0" onchange="manualSetPieceUpdate('Corners VDIF')">
+            <button onclick="updateSetPieces('Corners VDIF', 1)">+</button>
+        </div>
+        <div class="row">
+            <span>Straffar VDIF:</span>
+            <button onclick="updateSetPieces('Straffar VDIF', -1)">-</button>
+            <input type="number" id="straffar-vdif" value="0" min="0" onchange="manualSetPieceUpdate('Straffar VDIF')">
+            <button onclick="updateSetPieces('Straffar VDIF', 1)">+</button>
+        </div>
+        <div class="row">
+            <span>Frisparkar Motståndare:</span>
+            <button onclick="updateSetPieces('Frisparkar opponent', -1)">-</button>
+            <input type="number" id="frisparkar-opponent" value="0" min="0" onchange="manualSetPieceUpdate('Frisparkar opponent')">
+            <button onclick="updateSetPieces('Frisparkar opponent', 1)">+</button>
+        </div>
+        <div class="row">
+            <span>Hörnor Motståndare:</span>
+            <button onclick="updateSetPieces('Corners opponent', -1)">-</button>
+            <input type="number" id="corners-opponent" value="0" min="0" onchange="manualSetPieceUpdate('Corners opponent')">
+            <button onclick="updateSetPieces('Corners opponent', 1)">+</button>
+        </div>
+        <div class="row">
+            <span>Straffar Motståndare:</span>
+            <button onclick="updateSetPieces('Straffar opponent', -1)">-</button>
+            <input type="number" id="straffar-opponent" value="0" min="0" onchange="manualSetPieceUpdate('Straffar opponent')">
+            <button onclick="updateSetPieces('Straffar opponent', 1)">+</button>
+        </div>
+        <button id="save-set-pieces">Spara</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("pitch");
+        const ctx = canvas.getContext("2d");
+
+        const shots = [];
+        const categorySettings = {
+            "m": { label: "Mål", color: "orange" },
+            "p": { label: "Skott på mål", color: "blue" },
+            "u": { label: "Skott utanför mål", color: "red" },
+            "b": { label: "Blockerat skott", color: "black" },
+            "a": { label: "Assist", color: "purple" },
+            "n": { label: "Nyckelpass", color: "yellow" }
+        };
+        let matchInfo = {
+            home_or_away: "",
+            opponent: "",
+            antal_matcher: 1,
+            matchup: ""
+        };
+
+        let setPieces = {
+            "Frisparkar VDIF": 0,
+            "Frisparkar opponent": 0,
+            "Corners VDIF": 0,
+            "Corners opponent": 0,
+            "Straffar VDIF": 0,
+            "Straffar opponent": 0
+        };
+
+        // Funktion för att uppdatera värden via knappar
+        function updateSetPieces(category, delta) {
+            setPieces[category] = Math.max(0, (setPieces[category] || 0) + delta); // Undvik negativa värden
+            document.getElementById(category.toLowerCase().replace(" ", "-").replace("å", "a")).value = setPieces[category];
+        }
+
+        // Funktion för att uppdatera värden via manuellt inmatade siffror
+        function manualSetPieceUpdate(category) {
+            const input = document.getElementById(category.toLowerCase().replace(" ", "-").replace("å", "a"));
+            const newValue = parseInt(input.value, 10);
+
+            if (!isNaN(newValue) && newValue >= 0) {
+                setPieces[category] = newValue; // Uppdatera värdet i `setPieces`
+            } else {
+                input.value = setPieces[category] || 0; // Återställ till det senaste giltiga värdet
+                alert("Värdet måste vara ett icke-negativt heltal.");
+            }
+        }
+
+        function drawLine(x1, y1, x2, y2, color = "white", lineWidth = 2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+
+        function drawCircle(x, y, radius, color = "white", lineWidth = 2) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+
+        function fillRect(x, y, width, height, color = "green") {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawPitch() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Rita planen
+            fillRect(0, 0, width, height);
+
+            // Yttre linjer
+            drawLine(0, 0, width, 0);
+            drawLine(0, height, width, height);
+            drawLine(0, 0, 0, height);
+            drawLine(width, 0, width, height);
+
+            // Mittlinje
+            drawLine(width / 2, 0, width / 2, height);
+
+            // Straffområden
+            const penaltyBoxHeight = height * (12.25 / 60);
+            const penaltyBoxWidth = width * (15.71 / 100);
+
+            // Vänstra straffområdet
+            drawLine(0, penaltyBoxHeight, penaltyBoxWidth, penaltyBoxHeight);
+            drawLine(penaltyBoxWidth, penaltyBoxHeight, penaltyBoxWidth, height - penaltyBoxHeight);
+            drawLine(penaltyBoxWidth, height - penaltyBoxHeight, 0, height - penaltyBoxHeight);
+
+            // Högra straffområdet
+            drawLine(width, penaltyBoxHeight, width - penaltyBoxWidth, penaltyBoxHeight);
+            drawLine(width - penaltyBoxWidth, penaltyBoxHeight, width - penaltyBoxWidth, height - penaltyBoxHeight);
+            drawLine(width - penaltyBoxWidth, height - penaltyBoxHeight, width, height - penaltyBoxHeight);
+
+            // Straffpunkter
+            const penaltySpotDistance = width * (11 / 100);
+            drawCircle(penaltySpotDistance, height / 2, 5);
+            drawCircle(width - penaltySpotDistance, height / 2, 5);
+
+            // Målområden
+            const goalAreaWidth = width * (5.5 / 100);
+            const goalAreaHeight = height * (21.925 / 60);
+
+            // Vänster
+            drawLine(0, height / 2 - goalAreaHeight / 2, goalAreaWidth, height / 2 - goalAreaHeight / 2);
+            drawLine(goalAreaWidth, height / 2 - goalAreaHeight / 2, goalAreaWidth, height / 2 + goalAreaHeight / 2);
+            drawLine(goalAreaWidth, height / 2 + goalAreaHeight / 2, 0, height / 2 + goalAreaHeight / 2);
+
+            // Höger
+            drawLine(width, height / 2 - goalAreaHeight / 2, width - goalAreaWidth, height / 2 - goalAreaHeight / 2);
+            drawLine(width - goalAreaWidth, height / 2 - goalAreaHeight / 2, width - goalAreaWidth, height / 2 + goalAreaHeight / 2);
+            drawLine(width - goalAreaWidth, height / 2 + goalAreaHeight / 2, width, height / 2 + goalAreaHeight / 2);
+
+            // Mittcirkel
+            const centerCircleRadius = width * (9.15 / 100);
+            drawCircle(width / 2, height / 2, centerCircleRadius);
+
+            // Vertikala streckade linjer för zoner
+            ctx.setLineDash([5, 5]);
+            const zoneLinesX = [width * (28 / 100), width * (72 / 100), penaltyBoxWidth, width - penaltyBoxWidth];
+            zoneLinesX.forEach(x => {
+                drawLine(x, 0, x, height);
+            });
+
+            // Horisontella streckade linjer för zoner
+            const zoneLinesY = [height * (12.25 / 60), height * (47.75 / 60)];
+            zoneLinesY.forEach(y => {
+                drawLine(0, y, width, y);
+            });
+
+            ctx.setLineDash([]); // Återställ streckade linjer
+        }
+
+        function determineSide(x) {
+            return x <= 50 ? "VDIF" : "Bortalag";
+        }
+
+        function determineZone(x, y) {
+            const scaleX = canvas.width / 100;
+            const scaleY = canvas.height / 60;
+            const fieldX = x / scaleX;
+            const fieldY = y / scaleY;
+
+            if (0 <= x && x <= 28) {
+                if (0 <= y && y <= 12.25) return 1;
+                if (12.25 < y && y <= 21.925) return x <= 15.71 ? 2 : 6;
+                if (21.925 < y && y <= 38.075) return x <= 15.71 ? 3 : 7;
+                if (38.075 < y && y <= 47.75) return x <= 15.71 ? 4 : 8;
+                if (47.75 < y && y <= 60) return 5;
+            } else if (28 < x && x <= 50) {
+                if (0 <= y && y <= 12.25) return 9;
+                if (12.25 < y && y <= 47.75) return 10;
+                if (47.75 < y && y <= 60) return 11;
+            } else if (50 < x && x <= 72) {
+                if (47.75 < y && y <= 60) return 20;
+                if (12.25 < y && y <= 47.75) return 21;
+                if (0 <= y && y <= 12.25) return 22;
+            } else if (72 < x && x <= 100) {
+                if (47.75 < y && y <= 60) return 12;
+                if (38.075 < y && y <= 47.75) return x >= 84.29 ? 13 : 17;
+                if (21.925 < y && y <= 38.075) return x >= 84.29 ? 14 : 18;
+                if (12.25 < y && y <= 21.925) return x >= 84.29 ? 15 : 19;
+                if (0 <= y && y <= 12.25) return 16;
+            }
+            return null;
+        }
+
+        function getCurrentResult() {
+            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "m").length;
+            const opponentGoals = shots.filter(s => s.side === "Motståndare" && s.category === "m").length;
+            return `${vdifGoals} - ${opponentGoals}`;
+        }
+
+        // Klick för att registrera skott
+        canvas.addEventListener("click", (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) * (100 / canvas.width)).toFixed(2);
+            const y = ((event.clientY - rect.top) * (60 / canvas.height)).toFixed(2); // Originalvärde för visning
+
+            const side = determineSide(x);
+            const zone = determineZone(x, y);
+
+            if (!zone) {
+                alert("Skott utanför planen!");
+                return;
+            }
+
+            const category = prompt("Ange kategori (m = Mål, p = Skott på mål, u = Skott utanför mål, b = Blockerat skott, a = Assist, n = Nyckelpass):");
+            if (!category || !categorySettings[category]) {
+                alert("Ogiltig kategori, skott ej registrerat.");
+                return;
+            }
+
+            // Kategorier i rätt format för JSON
+            const formattedCategory = {
+                m: "goal",
+                p: "on goal",
+                u: "miss",
+                b: "blockerat skott",
+                a: "assist",
+                n: "nyckelpass"
+            }[category];
+
+            // Automatisk spelarnamnssättning
+            let playerName = side === "Motståndare" ? "Bortaspelare" : (prompt("Ange spelare:", "Hemmaspelare") || "Hemmaspelare");
+
+            let matchTime = "";
+            if (formattedCategory === "goal") {
+                matchTime = prompt("Ange matchtid (lämna tomt för okänd tid):", "") || "";
+            }
+
+            let setPieceType = "";
+            if (formattedCategory === "goal") {
+                setPieceType = prompt("Föranleddes målet av en fast situation? (f = Frispark, h = Hörna, s = Straff, tomt = Nej):", "").toLowerCase();
+                if (!["f", "h", "s", ""].includes(setPieceType)) {
+                    setPieceType = "";
+                }
+            }
+
+            let assist = null;
+            if (formattedCategory === "assist") {
+                const goals = shots.filter(s => s.category === "goal" && s.side === side);
+                if (goals.length > 0) {
+                    const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
+                    const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
+                    if (goalChoice) {
+                        const selectedGoal = goals[goalChoice - 1];
+                        if (selectedGoal) {
+                            assist = selectedGoal.player_name;
+                            selectedGoal.assist = playerName; // Koppla spelare som gav assist
+                        }
+                    }
+                }
+            }
+
+            const currentResult = getCurrentResult();
+
+            // Uppdatera resultat endast om det är ett mål
+            let newResult = currentResult;
+            if (formattedCategory === "goal") {
+                const [vdifGoals, opponentGoals] = currentResult.split(" - ").map(Number);
+                newResult = side === "VDIF" ? `${vdifGoals + 1} - ${opponentGoals}` : `${vdifGoals} - ${opponentGoals + 1}`;
+            }
+
+            // Skapa skottobjekt
+            const shot = {
+                x: parseFloat(x), // Sparas som flyttal
+                y: parseFloat(60 - y), // Spegelvänd y för att spara i JSON
+                category, // Korta nyckeln för att använda vid ritning
+                fullCategory: formattedCategory, // Fullständiga namnet för JSON-export
+                zone,
+                side,
+                player_name: playerName,
+                match_time: matchTime,
+                result: newResult,
+                assist: assist,
+                set_piece_type: setPieceType
+            };
+
+            shots.push(shot);
+
+            // Rita skottet på planen
+            ctx.fillStyle = categorySettings[category].color;
+            ctx.beginPath();
+            ctx.arc(x * (canvas.width / 100), y * (canvas.height / 60), 5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            console.log(`Skott registrerat: (${x}, ${y}, kategori: ${formattedCategory}, zon: ${zone}, sida: ${side})`);
+        });
+
+        // Funktion för att radera senaste skott
+        function deleteLastShot() {
+            if (shots.length === 0) {
+                alert("Inga skott att radera.");
+                return;
+            }
+
+            const confirmDelete = confirm("Är du säker på att du vill radera det senaste skottet?");
+            if (!confirmDelete) {
+                return; // Användaren avbröt
+            }
+
+            const lastShot = shots.pop(); // Ta bort senaste skottet från listan
+            console.log(`Senaste skottet raderat:`, lastShot);
+
+            // Rensa planen och rita om
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa hela canvas
+            drawPitch(); // Rita planen igen
+
+            // Rita om alla kvarvarande skott
+            shots.forEach(shot => {
+                try {
+                    const displayX = parseFloat(shot.x) * (canvas.width / 100);
+                    const displayY = (60 - parseFloat(shot.y)) * (canvas.height / 60); // Spegelvänd Y för visning
+
+                    // Hämta rätt färg från `categorySettings`
+                    const color = categorySettings[shot.category]?.color || "black"; // Standardfärg: svart
+
+                    // Rita skottet
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(displayX, displayY, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                } catch (error) {
+                    console.error(`Fel vid ritning av skott: ${JSON.stringify(shot)}`, error);
+                }
+            });
+
+            console.log("Kvarvarande skott efter radering:", shots);
+            alert("Senaste skottet har raderats.");
+        }
+
+        // Eventlyssnare för knappen
+        document.getElementById("delete-last-shot").addEventListener("click", deleteLastShot);
+
+
+        // Funktion för att fylla i matchinfo
+        function enterMatchInfo() {
+            const opponent = prompt("Ange motståndarlagets namn:", "Motståndarlaget");
+            if (!opponent) {
+                alert("Du måste ange ett namn för motståndarlaget.");
+                return;
+            }
+
+            const homeOrAway = prompt("Är VDIF hemmalag eller bortalag? (Skriv 'Hemma' eller 'Borta'):", "Hemma").toLowerCase();
+            if (!["hemma", "borta"].includes(homeOrAway)) {
+                alert("Ogiltigt val! Skriv 'Hemma' eller 'Borta'.");
+                return;
+            }
+
+            matchInfo.opponent = opponent;
+            matchInfo.home_or_away = homeOrAway === "hemma" ? "Hemmamalag" : "Bortalag";
+
+            // Automatiskt generera "matchup"-fält
+            matchInfo.matchup =
+                homeOrAway === "hemma"
+                    ? `VDIF vs ${opponent}`
+                    : `${opponent} vs VDIF`;
+
+            console.log("Matchinfo ifyllt:", matchInfo);
+            alert(`Matchinfo sparat!\n\n${JSON.stringify(matchInfo, null, 4)}`);
+        }
+
+        // Lägg till eventlyssnare för knappen "Info"
+        document.getElementById("enter-match-info").addEventListener("click", enterMatchInfo);
+
+        // Uppdatera texten på knapparna baserat på setPieces
+        function updateButtonLabels() {
+            document.getElementById("vdif-freekicks").textContent = `F: ${setPieces["Frisparkar VDIF"]}`;
+            document.getElementById("vdif-corners").textContent = `H: ${setPieces["Corners VDIF"]}`;
+            document.getElementById("vdif-penalties").textContent = `S: ${setPieces["Straffar VDIF"]}`;
+            document.getElementById("opponent-freekicks").textContent = `F: ${setPieces["Frisparkar opponent"]}`;
+            document.getElementById("opponent-corners").textContent = `H: ${setPieces["Corners opponent"]}`;
+            document.getElementById("opponent-penalties").textContent = `S: ${setPieces["Straffar opponent"]}`;
+        }
+
+        // Lägg till eventlyssnare för VDIF:s knappar
+        document.getElementById("vdif-freekicks").addEventListener("click", () => {
+            setPieces["Frisparkar VDIF"]++;
+            updateButtonLabels();
+        });
+
+        document.getElementById("vdif-corners").addEventListener("click", () => {
+            setPieces["Corners VDIF"]++;
+            updateButtonLabels();
+        });
+
+        document.getElementById("vdif-penalties").addEventListener("click", () => {
+            setPieces["Straffar VDIF"]++;
+            updateButtonLabels();
+        });
+
+        // Lägg till eventlyssnare för Motståndarlagets knappar
+        document.getElementById("opponent-freekicks").addEventListener("click", () => {
+            setPieces["Frisparkar opponent"]++;
+            updateButtonLabels();
+        });
+
+        document.getElementById("opponent-corners").addEventListener("click", () => {
+            setPieces["Corners opponent"]++;
+            updateButtonLabels();
+        });
+
+        document.getElementById("opponent-penalties").addEventListener("click", () => {
+            setPieces["Straffar opponent"]++;
+            updateButtonLabels();
+        });
+
+        // Hantera popup för fasta situationer
+        const popupModal = document.getElementById("popup-modal");
+        const overlay = document.getElementById("overlay");
+
+        function openPopup() {
+            popupModal.style.display = "block";
+            overlay.style.display = "block";
+
+            // Uppdatera inputfälten med aktuella värden
+            document.getElementById("frisparkar-vdif").value = setPieces["Frisparkar VDIF"];
+            document.getElementById("corners-vdif").value = setPieces["Corners VDIF"];
+            document.getElementById("straffar-vdif").value = setPieces["Straffar VDIF"];
+            document.getElementById("frisparkar-opponent").value = setPieces["Frisparkar opponent"];
+            document.getElementById("corners-opponent").value = setPieces["Corners opponent"];
+            document.getElementById("straffar-opponent").value = setPieces["Straffar opponent"];
+        }
+
+        function closePopup() {
+            popupModal.style.display = "none";
+            overlay.style.display = "none";
+            updateButtonLabels();
+        }
+
+        document.getElementById("fasta-situationer").addEventListener("click", openPopup);
+        overlay.addEventListener("click", closePopup);
+
+        document.getElementById("save-set-pieces").addEventListener("click", () => {
+            setPieces["Frisparkar VDIF"] = parseInt(document.getElementById("frisparkar-vdif").value, 10) || 0;
+            setPieces["Corners VDIF"] = parseInt(document.getElementById("corners-vdif").value, 10) || 0;
+            setPieces["Straffar VDIF"] = parseInt(document.getElementById("straffar-vdif").value, 10) || 0;
+            setPieces["Frisparkar opponent"] = parseInt(document.getElementById("frisparkar-opponent").value, 10) || 0;
+            setPieces["Corners opponent"] = parseInt(document.getElementById("corners-opponent").value, 10) || 0;
+            setPieces["Straffar opponent"] = parseInt(document.getElementById("straffar-opponent").value, 10) || 0;
+
+            console.log("Sparade fasta situationer:", setPieces);
+            alert("Fasta situationer sparade!");
+            closePopup();
+        });
+
+        // Spara data till JSON
+        document.getElementById("save-data").addEventListener("click", () => {
+            const data = {
+                match_info: matchInfo,
+                shots: shots.map(shot => ({
+                    x: shot.x,
+                    y: shot.y,
+                    category: shot.fullCategory || shot.category, // Använd fullständigt namn om det finns
+                    zone: shot.zone,
+                    side: shot.side,
+                    player_name: shot.player_name,
+                    match_time: shot.match_time,
+                    result: shot.result,
+                    assist: shot.assist,
+                    set_piece_type: shot.set_piece_type
+                })),
+                set_pieces: setPieces
+            };
+
+            const json = JSON.stringify(data, null, 4);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "match_data.json";
+            a.click();
+
+            URL.revokeObjectURL(url);
+            console.log("Data sparat som match_data.json");
+        });
+
+        // Spara data temporärt till JSON
+        function save_temp() {
+            const data = {
+                match_info: matchInfo,
+                shots: shots.map(shot => ({
+                    x: shot.x,
+                    y: shot.y,
+                    category: shot.fullCategory || shot.category, // Använd fullständigt namn om det finns
+                    zone: shot.zone,
+                    side: shot.side,
+                    player_name: shot.player_name,
+                    match_time: shot.match_time,
+                    result: shot.result,
+                    assist: shot.assist,
+                    set_piece_type: shot.set_piece_type
+                })),
+                set_pieces: setPieces
+            };
+
+            const json = JSON.stringify(data, null, 4);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "temp_data.json";
+            a.click();
+
+            URL.revokeObjectURL(url);
+            console.log("Data sparat som temp_data.json");
+        }
+
+        // Kartläggning för att översätta kategorier från JSON till interna nycklar
+        const jsonToCategory = {
+            "goal": "m",
+            "on goal": "p",
+            "miss": "u",
+            "blockerat skott": "b",
+            "assist": "a",
+            "nyckelpass": "n"
+        };
+
+        // Funktion för att uppdatera inputfälten
+        function syncSetPiecesWithInputs() {
+            console.log("Uppdaterar inputfält med setPieces...");
+            console.log("Frisparkar VDIF:", setPieces["Frisparkar VDIF"]);
+            document.getElementById("frisparkar-vdif").value = setPieces["Frisparkar VDIF"];
+            document.getElementById("corners-vdif").value = setPieces["Corners VDIF"];
+            document.getElementById("straffar-vdif").value = setPieces["Straffar VDIF"];
+            document.getElementById("frisparkar-opponent").value = setPieces["Frisparkar opponent"];
+            document.getElementById("corners-opponent").value = setPieces["Corners opponent"];
+            document.getElementById("straffar-opponent").value = setPieces["Straffar opponent"];
+        }
+
+        // Ladda data från JSON
+        document.getElementById("load-data").addEventListener("click", () => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "application/json";
+
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+
+                        // Kontrollera att nycklarna finns
+                        if (!data.match_info || !data.shots || !data.set_pieces) {
+                            alert("Ogiltigt filformat. Kontrollera att filen innehåller match_info, shots och set_pieces.");
+                            return;
+                        }
+
+                        // Ladda matchinfo
+                        matchInfo = { ...data.match_info };
+                        console.log("Matchinfo laddat:", matchInfo);
+
+                        // Ladda set pieces
+                        setPieces = { ...data.set_pieces };
+                        console.log("Set pieces laddade:", setPieces);
+
+                        // Uppdatera inputfält med aktuella värden
+                        syncSetPiecesWithInputs();
+
+                        // Uppdatera knappar baserat på setPieces
+                        updateButtonLabels();
+
+                        // Ladda skott och översätt kategorier
+                        shots.length = 0; // Rensa befintliga skott
+                        shots.push(
+                            ...data.shots.map(shot => ({
+                                ...shot,
+                                category: jsonToCategory[shot.category] || "unknown", // Översätt kategori
+                                fullcategory: shot.category || "unknown" // Översätt kategori
+                            }))
+                        );
+
+                        // Rita om planen med skott
+                        ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa canvas
+                        drawPitch(); // Rita planen igen
+
+                        shots.forEach(shot => {
+                            try {
+                                const displayX = parseFloat(shot.x) * (canvas.width / 100);
+                                const displayY = (60 - parseFloat(shot.y)) * (canvas.height / 60); // Spegelvänd Y för visning
+                                const color = categorySettings[shot.category]?.color || "black";
+
+                                ctx.fillStyle = color;
+                                ctx.beginPath();
+                                ctx.arc(displayX, displayY, 5, 0, 2 * Math.PI);
+                                ctx.fill();
+                            } catch (error) {
+                                console.error(`Fel vid ritning av skott: ${JSON.stringify(shot)}`, error);
+                            }
+                        });
+
+                        alert("Data laddat framgångsrikt!");
+                    } catch (error) {
+                        console.error("Fel vid laddning av data:", error);
+                        alert("Kunde inte läsa in filen. Kontrollera att den har rätt format.");
+                    }
+                };
+
+                reader.readAsText(file);
+            };
+
+            input.click();
+        });
+
+        function resizeCanvas() {
+            const maxWidth = window.innerWidth * 0.95; // 95% av skärmens bredd
+            const maxHeight = window.innerHeight * 0.95; // 95% av skärmens höjd
+            const aspectRatio = 100 / 60; // Proportionerna för planen
+
+            if (maxWidth / aspectRatio < maxHeight) {
+                canvas.width = maxWidth;
+                canvas.height = maxWidth / aspectRatio;
+            } else {
+                canvas.height = maxHeight;
+                canvas.width = maxHeight * aspectRatio;
+            }
+
+            drawPitch();
+        }
+
+        // Rita planen vid sidladdning och fönsterstorleksändring
+        window.onload = () => {
+            drawPitch();
+            updateButtonLabels();
+            resizeCanvas();
+        };
+
+        window.onresize = resizeCanvas;
+    </script>
+</body>
+</html>
