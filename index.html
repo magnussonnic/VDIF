@@ -159,6 +159,22 @@
         const API_KEY = 'AIzaSyA1fAReucSRYuVmGslyczgI9y_wpUb3hZA';     // Ersätt med ditt API-nyckel
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
+        let gapiInitialized = false;
+
+        // Initiera Google API
+        function initGoogleAPI() {
+          gapi.load('client:auth2', () => {
+            gapi.client.init({
+              apiKey: API_KEY,
+              clientId: CLIENT_ID,
+              scope: SCOPES,
+            }).then(() => {
+              gapiInitialized = true;
+              console.log('Google API initierat.');
+            }).catch(error => console.error('Google API-initieringsfel:', error));
+          });
+        }
+
         const shots = [];
         const categorySettings = {
             "m": { label: "Mål", color: "orange" },
@@ -781,6 +797,7 @@
             drawPitch();
             updateButtonLabels();
             resizeCanvas();
+            initGoogleAPI();
         };
 
         window.onresize = resizeCanvas;
