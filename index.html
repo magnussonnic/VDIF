@@ -326,7 +326,7 @@
 
         function getCurrentResult() {
             const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "m").length;
-            const opponentGoals = shots.filter(s => s.side === "Motståndare" && s.category === "m").length;
+            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "m").length;
             return `${vdifGoals} - ${opponentGoals}`;
         }
 
@@ -361,7 +361,7 @@
             }[category];
 
             // Automatisk spelarnamnssättning
-            let playerName = side === "Motståndare" ? "Bortaspelare" : (prompt("Ange spelare:", "Hemmaspelare") || "Hemmaspelare");
+            let playerName = side === "Bortalag" ? "Bortaspelare" : (prompt("Ange spelare:", "Hemmaspelare") || "Hemmaspelare");
 
             let matchTime = "";
             if (formattedCategory === "goal") {
@@ -378,15 +378,16 @@
 
             let assist = null;
             if (formattedCategory === "assist") {
-                const goals = shots.filter(s => s.category === "goal" && s.side === side);
+                const goals = shots.filter(s => s.category === "m" && s.side === side);
                 if (goals.length > 0) {
                     const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
                     const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
                     if (goalChoice) {
                         const selectedGoal = goals[goalChoice - 1];
                         if (selectedGoal) {
-                            assist = selectedGoal.player_name;
-                            selectedGoal.assist = playerName; // Koppla spelare som gav assist
+                            const matchupResult = `${matchInfo.matchup} | ${selectedGoal.result}`;
+                            assist = matchupResult; // Spara som unik identifiering
+                            selectedGoal.assist = matchupResult; // Koppla assist till målet
                         }
                     }
                 }
@@ -424,7 +425,7 @@
             ctx.arc(x * (canvas.width / 100), y * (canvas.height / 60), 5, 0, 2 * Math.PI);
             ctx.fill();
 
-            console.log(`Skott registrerat: (${x}, ${y}, kategori: ${formattedCategory}, zon: ${zone}, sida: ${side})`);
+            console.log(`Skott registrerat: (${x}, ${y}, kategori: ${formattedCategory}, Resultat: ${newResult}, zon: ${zone}, sida: ${side})`);
         });
 
         // Funktion för att radera senaste skott
@@ -605,15 +606,21 @@
 
             const json = JSON.stringify(data, null, 4);
             const blob = new Blob([json], { type: "application/json" });
+
+            // Hämta filnamnet från matchInfo.matchup
+            const fileName = matchInfo.matchup
+                ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json` // Ersätt otillåtna tecken med "_"
+                : "match_data.json"; // Standardnamn om matchup saknas
+
             const url = URL.createObjectURL(blob);
 
             const a = document.createElement("a");
             a.href = url;
-            a.download = "match_data.json";
+            a.download = fileName;
             a.click();
 
             URL.revokeObjectURL(url);
-            console.log("Data sparat som match_data.json");
+            console.log(`Data sparat som ${fileName}`);
         });
 
         // Spara data temporärt till JSON
