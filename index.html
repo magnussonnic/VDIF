@@ -155,6 +155,37 @@
         const canvas = document.getElementById("pitch");
         const ctx = canvas.getContext("2d");
 
+        let accessToken = null; // Globalt token
+
+        // Initiera Google API-klienten
+        function initGoogleAPI() {
+            google.accounts.oauth2.initTokenClient({
+                client_id: "1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com
+",
+                scope: "https://www.googleapis.com/auth/drive.file",
+                callback: (response) => {
+                    accessToken = response.access_token; // Spara access-token
+                    console.log("Access-token erhållen:", accessToken);
+                }
+            });
+        }
+
+        // Begär token vid behov
+        function requestAccessToken() {
+            if (!accessToken) {
+                google.accounts.oauth2.initTokenClient({
+                    client_id: "DIN_KLIENT-ID_HÄR",
+                    scope: "https://www.googleapis.com/auth/drive.file",
+                    callback: (response) => {
+                        accessToken = response.access_token;
+                        console.log("Access-token uppdaterad:", accessToken);
+                    }
+                }).requestAccessToken();
+            } else {
+                console.log("Access-token redan erhållen.");
+            }
+        }
+
         // Initiera Google Identity Services
         function initGoogleIdentityServices() {
             console.log("Initierar Google Identity Services...");
@@ -612,7 +643,6 @@
             closePopup();
         });
 
-        // Spara data till JSON
         document.getElementById("save-data").addEventListener("click", () => {
             const data = {
                 match_info: matchInfo,
@@ -638,13 +668,13 @@
                 ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json`
                 : "match_data.json";
 
-            const accessToken = google.accounts.oauth2.getToken()?.access_token;
-
             if (!accessToken) {
-                // Om användaren inte är inloggad, fråga om de vill logga in eller spara lokalt
-                const loginOption = confirm(
-                    "Du är inte inloggad på Google Drive. Vill du logga in för att spara på Drive? Klicka 'Avbryt' för att spara lokalt istället."
-                );
+                alert("Du är inte inloggad. Välj om du vill logga in eller spara filen lokalt.");
+                saveLocally(blob, fileName);
+            } else {
+                saveToDriveInFolder(blob, fileName, "VDIF Statistik");
+            }
+        });
 
                 if (loginOption) {
                     // Starta Google-inloggning
