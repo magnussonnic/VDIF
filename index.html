@@ -160,8 +160,7 @@
         // Initiera Google API-klienten
         function initGoogleAPI() {
             google.accounts.oauth2.initTokenClient({
-                client_id: "1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com
-",
+            client_id: "1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com",
                 scope: "https://www.googleapis.com/auth/drive.file",
                 callback: (response) => {
                     accessToken = response.access_token; // Spara access-token
