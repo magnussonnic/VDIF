@@ -150,9 +150,14 @@
         <button id="save-set-pieces">Spara</button>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
+
     <script>
         const canvas = document.getElementById("pitch");
         const ctx = canvas.getContext("2d");
+        const CLIENT_ID = '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com'; // Ersätt med ditt Client ID
+        const API_KEY = 'AIzaSyA1fAReucSRYuVmGslyczgI9y_wpUb3hZA';     // Ersätt med ditt API-nyckel
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
         const shots = [];
         const categorySettings = {
