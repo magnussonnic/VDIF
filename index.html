@@ -103,6 +103,7 @@
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
         <button id="placeholder"></button>
         <button id="save-data">Spara</button>
+        <button id="init-client">Init</button>
         <button id="load-data">Ladda</button>
     </div>
 
@@ -149,6 +150,8 @@
         <button id="save-set-pieces">Spara</button>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
+
     <script>
         const canvas = document.getElementById("pitch");
         const ctx = canvas.getContext("2d");
@@ -177,6 +180,33 @@
             "Straffar VDIF": 0,
             "Straffar opponent": 0
         };
+
+        // När användaren klickar på knappen, ladda Google API-klienten och autentisering
+        document.getElementById("init-client").addEventListener("click", function() {
+            gapi.load("client:auth2", initClient);
+        });
+
+        // Koden för att initiera Google API-klienten och autentisering
+        function initClient() {
+            gapi.client.init({
+                apiKey: '', // Din API-nyckel om du har en
+                clientId: '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com', // Ditt OAuth Client ID från Google Console
+                scope: 'https://www.googleapis.com/auth/drive.file', // Specifik åtkomst till Google Drive
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            }).then(function() {
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+            });
+        }
+
+        function updateSigninStatus(isSignedIn) {
+            if (isSignedIn) {
+                console.log("Användaren är inloggad");
+            } else {
+                console.log("Användaren är inte inloggad");
+                gapi.auth2.getAuthInstance().signIn();
+            }
+        }
 
         // Funktion för att uppdatera värden via knappar
         function updateSetPieces(category, delta) {
