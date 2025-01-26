@@ -103,8 +103,8 @@
         <button id="opponent-corners">H: 0</button>   <!-- Hörnor Motståndare -->
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
         <button id="placeholder"></button>
+        <button id="init-client">Login</button>
         <button id="save-data">Spara</button>
-        <button id="init-client">Init</button>
         <button id="load-data">Ladda</button>
     </div>
 
@@ -168,13 +168,16 @@
                 },
             });
 
-            // Lägg till en inloggningsknapp
-            const loginButton = document.createElement("button");
-            loginButton.textContent = "Logga in med Google";
-            loginButton.onclick = () => {
-                client.requestAccessToken();
-            };
-            document.body.appendChild(loginButton);
+            // Koppla inloggningslogik till knappen med id "init-client"
+            const initClientButton = document.getElementById("init-client");
+            if (initClientButton) {
+                initClientButton.addEventListener("click", () => {
+                    console.log("Init-knappen klickad, begär åtkomsttoken...");
+                    client.requestAccessToken();
+                });
+            } else {
+                console.error('Knappen med id "init-client" hittades inte.');
+            }
         }
 
         const shots = [];
