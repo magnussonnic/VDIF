@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com https://www.gstatic.com;">
     <title>Fotbollsplan med Knappar</title>
     <style>
         html, body {
@@ -157,6 +158,8 @@
 
         // Initiera Google Identity Services
         function initGoogleIdentityServices() {
+            console.log("Initierar Google Identity Services...");
+
             const client = google.accounts.oauth2.initTokenClient({
                 client_id: '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file',
@@ -166,15 +169,16 @@
                 },
             });
 
-            // Lägg till en knapp för inloggning
-            const loginButton = document.createElement("button");
-            loginButton.textContent = "Logga in med Google";
-            loginButton.style = "padding: 10px; margin: 10px;";
-            loginButton.onclick = () => {
-                client.requestAccessToken();
-            };
-
-            document.body.appendChild(loginButton);
+            // Koppla inloggningslogik till knappen med id "init-client"
+            const initClientButton = document.getElementById("init-client");
+            if (initClientButton) {
+                initClientButton.addEventListener("click", () => {
+                    console.log("Init-knappen klickad, begär åtkomsttoken...");
+                    client.requestAccessToken();
+                });
+            } else {
+                console.error('Knappen med id "init-client" hittades inte.');
+            }
         }
 
         const shots = [];
