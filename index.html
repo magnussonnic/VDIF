@@ -619,7 +619,7 @@
                 shots: shots.map(shot => ({
                     x: shot.x,
                     y: shot.y,
-                    category: shot.fullCategory || shot.category, // Använd fullständigt namn om det finns
+                    category: shot.fullCategory || shot.category,
                     zone: shot.zone,
                     side: shot.side,
                     player_name: shot.player_name,
@@ -634,21 +634,95 @@
             const json = JSON.stringify(data, null, 4);
             const blob = new Blob([json], { type: "application/json" });
 
-            // Hämta filnamnet från matchInfo.matchup
             const fileName = matchInfo.matchup
-                ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json` // Ersätt otillåtna tecken med "_"
-                : "match_data.json"; // Standardnamn om matchup saknas
+                ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json`
+                : "match_data.json";
 
+            const accessToken = google.accounts.oauth2.getToken()?.access_token;
+
+            if (!accessToken) {
+                // Om användaren inte är inloggad, fråga om de vill logga in eller spara lokalt
+                const loginOption = confirm(
+                    "Du är inte inloggad på Google Drive. Vill du logga in för att spara på Drive? Klicka 'Avbryt' för att spara lokalt istället."
+                );
+
+                if (loginOption) {
+                    // Starta Google-inloggning
+                    google.accounts.oauth2.initTokenClient({
+                        client_id: CLIENT_ID,
+                        scope: "https://www.googleapis.com/auth/drive.file",
+                        callback: (tokenResponse) => {
+                            console.log("Inloggning lyckades:", tokenResponse);
+                            saveToGoogleDrive(new File([blob], fileName, { type: "application/json" }));
+                        },
+                    }).requestAccessToken();
+                } else {
+                    // Spara lokalt
+                    saveLocally(blob, fileName);
+                }
+            } else {
+                // Fråga användaren om de vill spara på Google Drive eller lokalt
+                const saveOption = confirm("Vill du spara på Google Drive? Klicka 'OK' för Drive, eller 'Avbryt' för att spara lokalt.");
+                if (saveOption) {
+                    saveToGoogleDrive(new File([blob], fileName, { type: "application/json" }));
+                } else {
+                    saveLocally(blob, fileName);
+                }
+            }
+        });
+
+        // Spara lokalt
+        function saveLocally(blob, fileName) {
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement("a");
             a.href = url;
             a.download = fileName;
             a.click();
-
             URL.revokeObjectURL(url);
-            console.log(`Data sparat som ${fileName}`);
-        });
+            console.log(`Data sparat lokalt som ${fileName}`);
+        }
+
+        // Spara till Google Drive
+        function saveToGoogleDrive(file) {
+            const accessToken = google.accounts.oauth2.getToken()?.access_token;
+
+            if (!accessToken) {
+                alert("Det gick inte att få en giltig åtkomsttoken. Logga in och försök igen.");
+                return;
+            }
+
+            const metadata = {
+                name: file.name,
+                mimeType: file.type,
+            };
+
+            const formData = new FormData();
+            formData.append(
+                "metadata",
+                new Blob([JSON.stringify(metadata)], { type: "application/json" })
+            );
+            formData.append("file", file);
+
+            fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+                method: "POST",
+                headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
+                body: formData,
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Fel vid uppladdning till Google Drive");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(`Filen har sparats på Google Drive! Fil-ID: ${data.id}`);
+                    console.log("Drive-respons:", data);
+                })
+                .catch(error => {
+                    console.error("Fel vid uppladdning till Google Drive:", error);
+                    alert("Det gick inte att spara på Google Drive.");
+                });
+        }
 
         // Spara data temporärt till JSON
         function save_temp() {
