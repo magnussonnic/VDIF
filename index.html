@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com https://www.gstatic.com;">
     <title>Fotbollsplan med Knappar</title>
     <style>
         html, body {
@@ -169,16 +168,13 @@
                 },
             });
 
-            // Koppla inloggningslogik till knappen med id "init-client"
-            const initClientButton = document.getElementById("init-client");
-            if (initClientButton) {
-                initClientButton.addEventListener("click", () => {
-                    console.log("Init-knappen klickad, begär åtkomsttoken...");
-                    client.requestAccessToken();
-                });
-            } else {
-                console.error('Knappen med id "init-client" hittades inte.');
-            }
+            // Lägg till en inloggningsknapp
+            const loginButton = document.createElement("button");
+            loginButton.textContent = "Logga in med Google";
+            loginButton.onclick = () => {
+                client.requestAccessToken();
+            };
+            document.body.appendChild(loginButton);
         }
 
         const shots = [];
