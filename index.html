@@ -156,18 +156,29 @@
         const ctx = canvas.getContext("2d");
 
         let accessToken = null; // Globalt token
+        let tokenClient = null; // TokenClient som skapas en gång
 
         // Initiera Google Identity Services
         function initGoogleIdentityServices() {
-            google.accounts.oauth2.initTokenClient({
+            tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: "1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com",
                 scope: "https://www.googleapis.com/auth/drive.file",
                 callback: (response) => {
-                    console.log('Autentisering lyckades:', response);
+                    console.log("Autentisering lyckades:", response);
                     accessToken = response.access_token; // Spara access-token
                     console.log("Access-token erhållen:", accessToken);
                 }
             });
+        }
+
+        // Begär token vid behov
+        function requestAccessToken() {
+            if (!accessToken) {
+                console.log("Begär ny access-token...");
+                tokenClient.requestAccessToken();
+            } else {
+                console.log("Access-token redan erhållen:", accessToken);
+            }
         }
 
         // Koppla inloggningslogik till knappen med id "init-client"
@@ -175,36 +186,20 @@
         if (initClientButton) {
             initClientButton.addEventListener("click", () => {
                 console.log("Init-knappen klickad, begär åtkomsttoken...");
-                client.requestAccessToken();
+                requestAccessToken();
             });
         } else {
             console.error('Knappen med id "init-client" hittades inte.');
         }
 
-        // Begär token vid behov
-        function requestAccessToken() {
-            if (!accessToken) {
-                google.accounts.oauth2.initTokenClient({
-                    client_id: "DIN_KLIENT-ID_HÄR",
-                    scope: "https://www.googleapis.com/auth/drive.file",
-                    callback: (response) => {
-                        accessToken = response.access_token;
-                        console.log("Access-token uppdaterad:", accessToken);
-                    }
-                }).requestAccessToken();
-            } else {
-                console.log("Access-token redan erhållen.");
-            }
-        }
-
         const shots = [];
         const categorySettings = {
-            "m": { label: "Mål", color: "orange" },
-            "p": { label: "Skott på mål", color: "blue" },
-            "u": { label: "Skott utanför mål", color: "red" },
-            "b": { label: "Blockerat skott", color: "black" },
-            "a": { label: "Assist", color: "purple" },
-            "n": { label: "Nyckelpass", color: "yellow" }
+            "M": { label: "Mål", color: "orange" },
+            "P": { label: "Skott på mål", color: "blue" },
+            "U": { label: "Skott utanför mål", color: "red" },
+            "B": { label: "Blockerat skott", color: "black" },
+            "A": { label: "Assist", color: "purple" },
+            "N": { label: "Nyckelpass", color: "yellow" }
         };
         let matchInfo = {
             home_or_away: "",
@@ -369,8 +364,8 @@
         }
 
         function getCurrentResult() {
-            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "m").length;
-            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "m").length;
+            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "M").length;
+            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "M").length;
             return `${vdifGoals} - ${opponentGoals}`;
         }
 
@@ -422,7 +417,7 @@
 
             let assist = null;
             if (formattedCategory === "assist") {
-                const goals = shots.filter(s => s.category === "m" && s.side === side);
+                const goals = shots.filter(s => s.category === "M" && s.side === side);
                 if (goals.length > 0) {
                     const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
                     const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
@@ -701,12 +696,12 @@
 
         // Kartläggning för att översätta kategorier från JSON till interna nycklar
         const jsonToCategory = {
-            "goal": "m",
-            "on goal": "p",
-            "miss": "u",
-            "blockerat skott": "b",
-            "assist": "a",
-            "nyckelpass": "n"
+            "goal": "M",
+            "on goal": "P",
+            "miss": "U",
+            "blockerat skott": "B",
+            "assist": "A",
+            "nyckelpass": "N"
         };
 
         // Funktion för att uppdatera inputfälten
