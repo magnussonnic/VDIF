@@ -169,6 +169,7 @@
                 callback: (response) => {
                     console.log("Autentisering lyckades:", response);
                     accessToken = response.access_token; // Spara access-token
+                    updateLoginButton(); // Uppdatera knappen efter autentisering
                     console.log("Access-token erhållen:", accessToken);
                 }
             });
@@ -190,7 +191,6 @@
             initClientButton.addEventListener("click", () => {
                 console.log("Init-knappen klickad, begär åtkomsttoken...");
                 requestAccessToken();
-                setTimeout(updateLoginButton, 1000); // Uppdatera knappen efter autentisering
             });
         } else {
             console.error('Knappen med id "init-client" hittades inte.');
@@ -1015,6 +1015,7 @@
 
         // Växla färg på login-knappen baserat på inloggning
         function updateLoginButton() {
+            console.log("Access token:", accessToken); // Kontrollera att token finns
             const loginButton = document.getElementById("init-client");
             if (accessToken) {
                 loginButton.style.backgroundColor = "green";
