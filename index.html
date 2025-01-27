@@ -155,18 +155,36 @@
         const canvas = document.getElementById("pitch");
         const ctx = canvas.getContext("2d");
 
+        let accessToken = null; // Globalt token
+
         // Initiera Google Identity Services
         function initGoogleIdentityServices() {
-            console.log("Initierar Google Identity Services...");
-
-            const client = google.accounts.oauth2.initTokenClient({
-                client_id: '1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file',
+            google.accounts.oauth2.initTokenClient({
+                client_id: "1026240571341-kr1afkbmi76bdcmv3kbrpjdnt2e7v836.apps.googleusercontent.com",
+                scope: "https://www.googleapis.com/auth/drive.file",
                 callback: (response) => {
                     console.log('Autentisering lyckades:', response);
-                    // Spara token eller gör API-anrop här
-                },
+                    accessToken = response.access_token; // Spara access-token
+                    console.log("Access-token erhållen:", accessToken);
+                }
             });
+        }
+
+        // Begär token vid behov
+        function requestAccessToken() {
+            if (!accessToken) {
+                google.accounts.oauth2.initTokenClient({
+                    client_id: "DIN_KLIENT-ID_HÄR",
+                    scope: "https://www.googleapis.com/auth/drive.file",
+                    callback: (response) => {
+                        accessToken = response.access_token;
+                        console.log("Access-token uppdaterad:", accessToken);
+                    }
+                }).requestAccessToken();
+            } else {
+                console.log("Access-token redan erhållen.");
+            }
+        }
 
             // Koppla inloggningslogik till knappen med id "init-client"
             const initClientButton = document.getElementById("init-client");
