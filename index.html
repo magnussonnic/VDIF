@@ -168,6 +168,17 @@
                     console.log("Access-token erhållen:", accessToken);
                 }
             });
+
+            // Koppla inloggningslogik till knappen med id "init-client"
+            const initClientButton = document.getElementById("init-client");
+            if (initClientButton) {
+                initClientButton.addEventListener("click", () => {
+                    console.log("Init-knappen klickad, begär åtkomsttoken...");
+                    client.requestAccessToken();
+                });
+            } else {
+                console.error('Knappen med id "init-client" hittades inte.');
+            }
         }
 
         // Begär token vid behov
@@ -183,18 +194,6 @@
                 }).requestAccessToken();
             } else {
                 console.log("Access-token redan erhållen.");
-            }
-        }
-
-            // Koppla inloggningslogik till knappen med id "init-client"
-            const initClientButton = document.getElementById("init-client");
-            if (initClientButton) {
-                initClientButton.addEventListener("click", () => {
-                    console.log("Init-knappen klickad, begär åtkomsttoken...");
-                    client.requestAccessToken();
-                });
-            } else {
-                console.error('Knappen med id "init-client" hittades inte.');
             }
         }
 
