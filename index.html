@@ -631,7 +631,7 @@
                 shots: shots.map(shot => ({
                     x: shot.x,
                     y: shot.y,
-                    category: shot.fullCategory || shot.category, // Använd fullständigt namn om det finns
+                    category: shot.fullCategory || shot.category,
                     zone: shot.zone,
                     side: shot.side,
                     player_name: shot.player_name,
@@ -646,21 +646,116 @@
             const json = JSON.stringify(data, null, 4);
             const blob = new Blob([json], { type: "application/json" });
 
-            // Hämta filnamnet från matchInfo.matchup
             const fileName = matchInfo.matchup
-                ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json` // Ersätt otillåtna tecken med "_"
-                : "match_data.json"; // Standardnamn om matchup saknas
+                ? `${matchInfo.matchup.replace(/[^a-zA-Z0-9_-]/g, "_")}.json`
+                : "match_data.json";
 
+            if (!accessToken) {
+                alert("Du är inte inloggad. Välj om du vill logga in eller spara filen lokalt.");
+                saveLocally(blob, fileName);
+            } else {
+                saveToDriveInFolder(blob, fileName, "VDIF Statistik");
+            }
+        });
+
+        // Spara lokalt
+        function saveLocally(blob, fileName) {
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement("a");
             a.href = url;
             a.download = fileName;
             a.click();
-
             URL.revokeObjectURL(url);
-            console.log(`Data sparat som ${fileName}`);
-        });
+            console.log(`Data sparat lokalt som ${fileName}`);
+        }
+
+        // Spara till specifik mapp på Google Drive
+        function saveToDriveInFolder(blob, fileName, folderName) {
+            const accessToken = google.accounts.oauth2.getToken()?.access_token;
+
+            if (!accessToken) {
+                alert("Ingen giltig åtkomsttoken. Logga in och försök igen.");
+                return;
+            }
+
+            // Kontrollera om mappen redan finns
+            fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
+                method: "GET",
+                headers: new Headers({ Authorization: `Bearer ${accessToken}` })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.files && data.files.length > 0) {
+                        // Mappen finns, använd första träffen
+                        const folderId = data.files[0].id;
+                        uploadFileToDrive(blob, fileName, folderId);
+                    } else {
+                        // Skapa mappen om den inte finns
+                        createDriveFolder(folderName, accessToken).then(folderId => {
+                            uploadFileToDrive(blob, fileName, folderId);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Fel vid sökning efter mapp:", error);
+                    alert("Det gick inte att söka efter mappen på Google Drive.");
+                });
+        }
+
+        // Skapa mapp på Google Drive
+        function createDriveFolder(folderName, accessToken) {
+            return fetch("https://www.googleapis.com/drive/v3/files", {
+                method: "POST",
+                headers: new Headers({
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json"
+                }),
+                body: JSON.stringify({
+                    name: folderName,
+                    mimeType: "application/vnd.google-apps.folder"
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(`Mapp '${folderName}' skapad med ID: ${data.id}`);
+                    return data.id;
+                })
+                .catch(error => {
+                    console.error("Fel vid skapande av mapp:", error);
+                    alert("Det gick inte att skapa mappen på Google Drive.");
+                    throw error;
+                });
+        }
+
+        // Ladda upp fil till Google Drive
+        function uploadFileToDrive(blob, fileName, folderId) {
+            const accessToken = google.accounts.oauth2.getToken()?.access_token;
+
+            const metadata = {
+                name: fileName,
+                parents: [folderId],
+                mimeType: blob.type
+            };
+
+            const formData = new FormData();
+            formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+            formData.append("file", blob);
+
+            fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+                method: "POST",
+                headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(`Filen har sparats på Google Drive i mappen '${metadata.parents}'. Fil-ID: ${data.id}`);
+                    console.log("Drive-respons:", data);
+                })
+                .catch(error => {
+                    console.error("Fel vid uppladdning till Google Drive:", error);
+                    alert("Det gick inte att spara på Google Drive.");
+                });
+        }
 
         // Spara data temporärt till JSON
         function save_temp() {
