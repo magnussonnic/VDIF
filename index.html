@@ -850,14 +850,12 @@
             "nyckelpass": "N"
         };
 
-        // Ladda temporär data från Google Drive
         function loadTempDataFromDrive() {
             if (!accessToken) {
                 alert("Ingen giltig åtkomsttoken. Logga in och försök igen.");
                 return;
             }
 
-            // Hämta "temp_data.json" från mappen "VDIF Statistik"
             fetch(`https://www.googleapis.com/drive/v3/files?q=name='temp_data.json' and trashed=false`, {
                 method: "GET",
                 headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
@@ -866,7 +864,7 @@
                 .then((data) => {
                     if (data.files && data.files.length > 0) {
                         const fileId = data.files[0].id;
-
+                
                         // Ladda innehållet i filen
                         fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
                             method: "GET",
@@ -882,7 +880,13 @@
                                 // Ladda data
                                 matchInfo = { ...tempData.match_info };
                                 shots.length = 0;
-                                shots.push(...tempData.shots);
+                                shots.push(
+                                    ...tempData.shots.map(shot => ({
+                                        ...shot,
+                                        category: jsonToCategory[shot.category] || "unknown", // Översätt kategori
+                                        fullcategory: shot.category || "unknown" // Fullständig kategori
+                                    }))
+                                );
                                 setPieces = { ...tempData.set_pieces };
 
                                 // Uppdatera gränssnittet
@@ -890,7 +894,7 @@
                                 updateButtonLabels();
                                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                                 drawPitch();
-                                shots.forEach((shot) => {
+                                shots.forEach(shot => {
                                     const x = parseFloat(shot.x) * (canvas.width / 100);
                                     const y = (60 - parseFloat(shot.y)) * (canvas.height / 60);
                                     const color = categorySettings[shot.category]?.color || "black";
