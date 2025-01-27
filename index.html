@@ -671,8 +671,6 @@
 
         // Spara till specifik mapp på Google Drive
         function saveToDriveInFolder(blob, fileName, folderName) {
-            const accessToken = google.accounts.oauth2.getToken()?.access_token;
-
             if (!accessToken) {
                 alert("Ingen giltig åtkomsttoken. Logga in och försök igen.");
                 return;
@@ -691,7 +689,7 @@
                         uploadFileToDrive(blob, fileName, folderId);
                     } else {
                         // Skapa mappen om den inte finns
-                        createDriveFolder(folderName, accessToken).then(folderId => {
+                        createDriveFolder(folderName).then(folderId => {
                             uploadFileToDrive(blob, fileName, folderId);
                         });
                     }
@@ -703,7 +701,7 @@
         }
 
         // Skapa mapp på Google Drive
-        function createDriveFolder(folderName, accessToken) {
+        function createDriveFolder(folderName) {
             return fetch("https://www.googleapis.com/drive/v3/files", {
                 method: "POST",
                 headers: new Headers({
@@ -729,8 +727,6 @@
 
         // Ladda upp fil till Google Drive
         function uploadFileToDrive(blob, fileName, folderId) {
-            const accessToken = google.accounts.oauth2.getToken()?.access_token;
-
             const metadata = {
                 name: fileName,
                 parents: [folderId],
@@ -748,7 +744,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    alert(`Filen har sparats på Google Drive i mappen '${metadata.parents}'. Fil-ID: ${data.id}`);
+                    alert(`Filen har sparats på Google Drive i mappen '${folderName}'. Fil-ID: ${data.id}`);
                     console.log("Drive-respons:", data);
                 })
                 .catch(error => {
