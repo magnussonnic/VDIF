@@ -392,12 +392,12 @@
 
             // Kategorier i rätt format för JSON
             const formattedCategory = {
-                m: "goal",
-                p: "on goal",
-                u: "miss",
-                b: "blockerat skott",
-                a: "assist",
-                n: "nyckelpass"
+                M: "goal",
+                P: "on goal",
+                U: "miss",
+                B: "blockerat skott",
+                A: "assist",
+                N: "nyckelpass"
             }[category];
 
             // Automatisk spelarnamnssättning
@@ -823,18 +823,6 @@
             "nyckelpass": "N"
         };
 
-        // Funktion för att uppdatera inputfälten
-        function syncSetPiecesWithInputs() {
-            console.log("Uppdaterar inputfält med setPieces...");
-            console.log("Frisparkar VDIF:", setPieces["Frisparkar VDIF"]);
-            document.getElementById("frisparkar-vdif").value = setPieces["Frisparkar VDIF"];
-            document.getElementById("corners-vdif").value = setPieces["Corners VDIF"];
-            document.getElementById("straffar-vdif").value = setPieces["Straffar VDIF"];
-            document.getElementById("frisparkar-opponent").value = setPieces["Frisparkar opponent"];
-            document.getElementById("corners-opponent").value = setPieces["Corners opponent"];
-            document.getElementById("straffar-opponent").value = setPieces["Straffar opponent"];
-        }
-
         // Ladda data från JSON
         document.getElementById("load-data").addEventListener("click", () => {
             const input = document.createElement("input");
@@ -912,6 +900,30 @@
             input.click();
         });
 
+        // Funktion för att uppdatera inputfälten
+        function syncSetPiecesWithInputs() {
+            console.log("Uppdaterar inputfält med setPieces...");
+            console.log("Frisparkar VDIF:", setPieces["Frisparkar VDIF"]);
+            document.getElementById("frisparkar-vdif").value = setPieces["Frisparkar VDIF"];
+            document.getElementById("corners-vdif").value = setPieces["Corners VDIF"];
+            document.getElementById("straffar-vdif").value = setPieces["Straffar VDIF"];
+            document.getElementById("frisparkar-opponent").value = setPieces["Frisparkar opponent"];
+            document.getElementById("corners-opponent").value = setPieces["Corners opponent"];
+            document.getElementById("straffar-opponent").value = setPieces["Straffar opponent"];
+        }
+
+        // Växla färg på login-knappen baserat på inloggning
+        function updateLoginButton() {
+            const loginButton = document.getElementById("init-client");
+            if (accessToken) {
+                loginButton.style.backgroundColor = "green";
+                loginButton.textContent = "Inloggad";
+            } else {
+                loginButton.style.backgroundColor = "red";
+                loginButton.textContent = "Ej inloggad";
+            }
+        }
+
         function resizeCanvas() {
             const maxWidth = window.innerWidth * 0.95; // 95% av skärmens bredd
             const maxHeight = window.innerHeight * 0.95; // 95% av skärmens höjd
@@ -934,6 +946,7 @@
             updateButtonLabels();
             resizeCanvas();
             initGoogleIdentityServices();
+            updateLoginButton();
         };
 
         window.onresize = resizeCanvas;
