@@ -696,7 +696,7 @@
         }
 
         // Spara till specifik mapp på Google Drive
-        function saveToDriveInFolder(blob, fileName, folderName) {
+        function saveToDriveInFolder(blob, fileName, folderName, isTemp = false) {
             if (!accessToken) {
                 alert("Ingen giltig åtkomsttoken. Logga in och försök igen.");
                 return;
@@ -712,11 +712,21 @@
                     if (data.files && data.files.length > 0) {
                         // Mappen finns, använd första träffen
                         const folderId = data.files[0].id;
-                        uploadFileToDrive(blob, fileName, folderId);
+                        if (isTemp) {
+                            // Temporär sparning
+                            uploadTempFileToDrive(blob, fileName, folderId);
+                        } else {
+                            // Vanlig sparning
+                            uploadFileToDrive(blob, fileName, folderId);
+                        }
                     } else {
                         // Skapa mappen om den inte finns
                         createDriveFolder(folderName).then(folderId => {
-                            uploadFileToDrive(blob, fileName, folderId);
+                            if (isTemp) {
+                                uploadTempFileToDrive(blob, fileName, folderId);
+                            } else {
+                                uploadFileToDrive(blob, fileName, folderId);
+                            }
                         });
                     }
                 })
@@ -784,36 +794,56 @@
                 });
         }
 
-        // Spara data temporärt till JSON
-        function save_temp() {
-            const data = {
-                match_info: matchInfo,
-                shots: shots.map(shot => ({
-                    x: shot.x,
-                    y: shot.y,
-                    category: shot.fullCategory || shot.category, // Använd fullständigt namn om det finns
-                    zone: shot.zone,
-                    side: shot.side,
-                    player_name: shot.player_name,
-                    match_time: shot.match_time,
-                    result: shot.result,
-                    assist: shot.assist,
-                    set_piece_type: shot.set_piece_type
-                })),
-                set_pieces: setPieces
+        // Ladda upp temporär fil till Google Drive
+        function uploadTempFileToDrive(blob, fileName, folderId) {
+            const metadata = {
+                name: fileName,
+                parents: [folderId],
+                mimeType: blob.type
             };
 
-            const json = JSON.stringify(data, null, 4);
-            const blob = new Blob([json], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
+            // Kontrollera om en temporär fil redan finns och radera den
+            fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${folderId}' in parents and trashed=false`, {
+                method: "GET",
+                headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.files && data.files.length > 0) {
+                        const fileId = data.files[0].id;
 
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "temp_data.json";
-            a.click();
+                        // Radera befintlig temporär fil
+                        return fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+                            method: "DELETE",
+                            headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
+                        });
+                    }
+                })
+                .then(() => {
+                    // Ladda upp den nya temporära filen
+                    const formData = new FormData();
+                    formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+                    formData.append("file", blob);
 
-            URL.revokeObjectURL(url);
-            console.log("Data sparat som temp_data.json");
+                    return fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+                        method: "POST",
+                        headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
+                        body: formData
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Google Drive API error: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`Temporär fil sparad som '${fileName}' i mappen '${folderId}'. Fil-ID: ${data.id}`);
+                })
+                .catch(error => {
+                    console.error("Fel vid uppladdning av temporär fil:", error);
+                    alert("Det gick inte att spara den temporära filen. Kontrollera din internetanslutning eller API-behörighet.");
+                });
         }
 
         // Temporär sparfunktion
@@ -837,7 +867,11 @@
 
             const json = JSON.stringify(data, null, 4);
             const blob = new Blob([json], { type: "application/json" });
-            saveToDriveInFolder(blob, "temp_data.json", "VDIF Statistik");
+
+            const folderName = "VDIF Statistik";
+            const fileName = "temp_data.json";
+
+            saveToDriveInFolder(blob, fileName, folderName, true);
         }
 
         // Kartläggning för att översätta kategorier från JSON till interna nycklar
