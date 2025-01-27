@@ -92,6 +92,7 @@
         <button id="vdif-freekicks">F: 0</button> <!-- Frisparkar VDIF -->
         <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
         <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
+        <button id="placeholder2"></button>
         <button id="fasta-situationer">Fasta</button> <!-- Ny knapp -->
         <button id="enter-match-info">Info</button>
         <button id="delete-last-shot">Ångra</button>
@@ -102,7 +103,7 @@
         <button id="opponent-freekicks">F: 0</button> <!-- Frisparkar Motståndare -->
         <button id="opponent-corners">H: 0</button>   <!-- Hörnor Motståndare -->
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
-        <button id="placeholder"></button>
+        <button id="placeholder1"></button>
         <button id="init-client">Login</button>
         <button id="save-data">Spara</button>
         <button id="load-data">Ladda</button>
@@ -651,12 +652,33 @@
                 : "match_data.json";
 
             if (!accessToken) {
-                alert("Du är inte inloggad. Välj om du vill logga in eller spara filen lokalt.");
-                saveLocally(blob, fileName);
+                const userChoice = confirm(
+                    "Du är inte inloggad.\nVill du logga in och spara på Google Drive? Klicka 'OK'.\nKlicka 'Avbryt' för att spara filen lokalt."
+                );
+
+                if (userChoice) {
+                    // Försök logga in och spara på Google Drive
+                    requestAccessToken(); // Logga in
+                    setTimeout(() => {
+                        if (accessToken) {
+                            saveToDriveInFolder(blob, fileName, "VDIF Statistik");
+                        } else {
+                            alert("Inloggningen misslyckades. Filen sparas lokalt istället.");
+                            saveLocally(blob, fileName);
+                        }
+                    }, 3000); // Vänta kort för att ge autentisering tid
+                } else {
+                    // Avbryt eller spara lokalt
+                    const localChoice = confirm("Vill du spara filen lokalt?\nKlicka 'OK' för att spara.\nKlicka 'Avbryt' för att avbryta.");
+                    if (localChoice) {
+                        saveLocally(blob, fileName);
+                    } else {
+                        console.log("Användaren avbröt sparningen.");
+                    }
+                }
             } else {
                 saveToDriveInFolder(blob, fileName, "VDIF Statistik");
             }
-        });
 
         // Spara lokalt
         function saveLocally(blob, fileName) {
@@ -742,14 +764,19 @@
                 headers: new Headers({ Authorization: `Bearer ${accessToken}` }),
                 body: formData
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Google Drive API error: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    alert(`Filen har sparats på Google Drive i mappen '${folderName}'. Fil-ID: ${data.id}`);
+                    alert(`Filen har sparats på Google Drive i mappen '${folderId}'. Fil-ID: ${data.id}`);
                     console.log("Drive-respons:", data);
                 })
                 .catch(error => {
                     console.error("Fel vid uppladdning till Google Drive:", error);
-                    alert("Det gick inte att spara på Google Drive.");
+                    alert("Det gick inte att spara på Google Drive. Kontrollera din internetanslutning eller API-behörighet.");
                 });
         }
 
