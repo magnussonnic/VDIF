@@ -119,9 +119,9 @@
         <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
         <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
         <button id="placeholder2" class="button-placeh"></button>
-        <button id="fasta-situationer" class="button-grey">Fasta</button> <!-- Ny knapp -->
-        <button id="enter-match-info" class="button-grey">Info</button>
-        <button id="delete-last-shot" class="button-grey">Ångra</button>
+        <button id="fasta-situationer">Fasta</button> <!-- Ny knapp -->
+        <button id="enter-match-info">Info</button>
+        <button id="delete-last-shot">Ångra</button>
     </div>
 
     <!-- Knappar på höger sida -->
@@ -132,8 +132,7 @@
         <button id="placeholder1" class="button-placeh"></button>
         <button id="init-client">Login</button>
         <button id="save-data">Spara</button>
-        <button id="load-temp" class="button-grey">Ladda</button>
-        <button id="save-temp" class="button-grey">S Tem</button>
+        <button id="load-temp">Ladda</button>
     </div>
 
     <!-- Popup Modal -->
@@ -1053,7 +1052,7 @@
             console.log("Access token:", accessToken); // Kontrollera att token finns
             const loginButton = document.getElementById("init-client");
             if (accessToken) {
-                loginButton.style.backgroundColor = "green";
+                loginButton.style.backgroundColor = "";
                 loginButton.textContent = "Login";
             } else {
                 loginButton.style.backgroundColor = "red";
