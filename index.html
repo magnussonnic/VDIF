@@ -1001,11 +1001,11 @@
             switch (status) {
                 case "saving":
                     saveButton.style.backgroundColor = "orange"; // Under sparning
-                    saveButton.textContent = "Sparar...";
+                    saveButton.textContent = "Spara";
                     break;
                 case "saved":
                     saveButton.style.backgroundColor = "green"; // Sparning klar
-                    saveButton.textContent = "Sparat!";
+                    saveButton.textContent = "Spara";
                     setTimeout(() => {
                         saveButton.style.backgroundColor = ""; // Tillbaka till blå (standard)
                         saveButton.textContent = "Spara";
@@ -1027,7 +1027,7 @@
                 indicateSaving("saved"); // Visa att sparningen lyckades
             } catch (error) {
                 console.error("Fel vid sparning av temporär fil:", error);
-                alert("Det gick inte att spara temporärt. Kontrollera din anslutning.");
+                // alert("Det gick inte att spara temporärt. Kontrollera din anslutning."); 
                 indicateSaving(); // Återställ till standard
             }
         }
