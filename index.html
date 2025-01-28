@@ -43,21 +43,7 @@
         #controls-left button:hover, #controls-right button:hover {
             background-color: #0056b3;
         }
-        /* Standardstil för gråa knappar */
-        .button-grey {
-            background-color: darkgrey !important;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
 
-        /* Stil för hovring på gråa knappar */
-        .button-grey:hover {
-            background-color: grey !important;
-        }
         /* Standardstil för placeholders */
         .button-placeh {
             background-color: #0056b3 !important;
@@ -569,6 +555,7 @@
 
             console.log("Matchinfo ifyllt:", matchInfo);
             alert(`Matchinfo sparat!\n\n${JSON.stringify(matchInfo, null, 4)}`);
+            updateMatchInfoButton();
             trySaveTempToDrive(); // Spara temporärt efter ändring
         }
 
@@ -997,6 +984,7 @@
         }
 
         function indicateSaving(status) {
+            const saveButton = document.getElementById("save-data");
             switch (status) {
                 case "saving":
                     saveButton.style.backgroundColor = "orange"; // Under sparning
@@ -1004,7 +992,15 @@
                     break;
                 case "saved":
                     saveButton.style.backgroundColor = "green"; // Sparning klar
-                    saveButton.textContent = "Spara";
+                    saveButton.textContent = "Temp!";
+                    setTimeout(() => {
+                        saveButton.style.backgroundColor = ""; // Tillbaka till blå (standard)
+                        saveButton.textContent = "Spara";
+                    }, 2000); // Återställ efter 2 sekunder
+                    break;
+                case "failed":
+                    saveButton.style.backgroundColor = "red"; // Sparning misslyckades
+                    saveButton.textContent = "Fel!";
                     setTimeout(() => {
                         saveButton.style.backgroundColor = ""; // Tillbaka till blå (standard)
                         saveButton.textContent = "Spara";
@@ -1016,18 +1012,22 @@
             }
         }
 
+        // Försök att spara temporär fil till Google Drive
         async function trySaveTempToDrive() {
             if (!hasDataChanged()) return; // Spara endast om data har ändrats
 
             indicateSaving("saving"); // Visa att sparning pågår
 
             try {
-                await saveTempDataToDrive(); // Spara till Google Drive
+                if (!accessToken) {
+                    throw new Error("Ingen åtkomsttoken. Du är inte inloggad."); // Tvinga ett fel om användaren inte är inloggad
+                }
+
+                await saveTempDataToDrive(); // Försök spara till Google Drive
                 indicateSaving("saved"); // Visa att sparningen lyckades
             } catch (error) {
                 console.error("Fel vid sparning av temporär fil:", error);
-                // alert("Det gick inte att spara temporärt. Kontrollera din anslutning."); 
-                indicateSaving(); // Återställ till standard
+                indicateSaving("failed"); // Visa att sparningen misslyckades
             }
         }
 
@@ -1059,6 +1059,19 @@
             }
         }
 
+        function updateMatchInfoButton() {
+            const matchInfoButton = document.getElementById("enter-match-info");
+
+            // Kontrollera om matchInfo innehåller standardvärden
+            if (!matchInfo.opponent || matchInfo.home_or_away === "") {
+                matchInfoButton.style.backgroundColor = "red"; // Gör knappen röd
+                matchInfoButton.textContent = "Info";
+            } else {
+                matchInfoButton.style.backgroundColor = ""; // Återställ till standardfärg
+                matchInfoButton.textContent = "Info";
+            }
+        }
+
         function resizeCanvas() {
             const maxWidth = window.innerWidth * 0.95; // 95% av skärmens bredd
             const maxHeight = window.innerHeight * 0.95; // 95% av skärmens höjd
@@ -1082,6 +1095,7 @@
             resizeCanvas();
             initGoogleIdentityServices();
             updateLoginButton();
+            updateMatchInfoButton(); // Kontrollera matchinfo-knappen
         };
 
         window.onresize = resizeCanvas;
