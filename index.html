@@ -131,7 +131,7 @@
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
         <button id="placeholder1" class="button-placeh"></button>
         <button id="init-client">Login</button>
-        <button id="save-data" class="button-grey">Spara</button>
+        <button id="save-data">Spara</button>
         <button id="load-temp" class="button-grey">Ladda</button>
         <button id="save-temp" class="button-grey">S Tem</button>
     </div>
@@ -538,6 +538,7 @@
 
             console.log("Kvarvarande skott efter radering:", shots);
             alert("Senaste skottet har raderats.");
+            trySaveTempToDrive(); // Spara temporärt efter ändring
         }
 
         // Eventlyssnare för knappen
