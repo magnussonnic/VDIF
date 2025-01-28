@@ -43,6 +43,32 @@
         #controls-left button:hover, #controls-right button:hover {
             background-color: #0056b3;
         }
+        /* Standardstil för gråa knappar */
+        .button-grey {
+            background-color: darkgrey !important;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Stil för hovring på gråa knappar */
+        .button-grey:hover {
+            background-color: grey !important;
+        }
+        /* Standardstil för placeholders */
+        .button-black {
+            background-color: black !important;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
         #popup-modal {
             display: none;
             position: fixed;
@@ -92,10 +118,10 @@
         <button id="vdif-freekicks">F: 0</button> <!-- Frisparkar VDIF -->
         <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
         <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
-        <button id="placeholder2"></button>
-        <button id="fasta-situationer">Fasta</button> <!-- Ny knapp -->
-        <button id="enter-match-info">Info</button>
-        <button id="delete-last-shot">Ångra</button>
+        <button id="placeholder2" class="button-black"></button>
+        <button id="fasta-situationer" class="button-grey">Fasta</button> <!-- Ny knapp -->
+        <button id="enter-match-info" class="button-grey">Info</button>
+        <button id="delete-last-shot" class="button-grey">Ångra</button>
     </div>
 
     <!-- Knappar på höger sida -->
@@ -103,12 +129,11 @@
         <button id="opponent-freekicks">F: 0</button> <!-- Frisparkar Motståndare -->
         <button id="opponent-corners">H: 0</button>   <!-- Hörnor Motståndare -->
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
-        <button id="placeholder1"></button>
+        <button id="placeholder1" class="button-black"></button>
         <button id="init-client">Login</button>
-        <button id="save-data">Spara</button>
-        <button id="load-data">Ladda</button>
-        <button id="save-temp">S Tem</button>
-        <button id="load-temp">L Tem</button>
+        <button id="save-data" class="button-grey">Spara</button>
+        <button id="load-temp" class="button-grey">Ladda</button>
+        <button id="save-temp" class="button-grey">S Tem</button>
     </div>
 
     <!-- Popup Modal -->
@@ -225,6 +250,7 @@
         function updateSetPieces(category, delta) {
             setPieces[category] = Math.max(0, (setPieces[category] || 0) + delta); // Undvik negativa värden
             document.getElementById(category.toLowerCase().replace(" ", "-").replace("å", "a")).value = setPieces[category];
+        trySaveTempToDrive(); // Spara temporärt efter ändring
         }
 
         // Funktion för att uppdatera värden via manuellt inmatade siffror
@@ -461,6 +487,7 @@
             };
 
             shots.push(shot);
+            trySaveTempToDrive(); // Spara temporärt efter ändring
 
             // Rita skottet på planen
             ctx.fillStyle = categorySettings[category].color;
@@ -542,6 +569,7 @@
 
             console.log("Matchinfo ifyllt:", matchInfo);
             alert(`Matchinfo sparat!\n\n${JSON.stringify(matchInfo, null, 4)}`);
+            trySaveTempToDrive(); // Spara temporärt efter ändring
         }
 
         // Lägg till eventlyssnare för knappen "Info"
@@ -954,82 +982,54 @@
                 });
         }
 
-        // Ladda data från JSON
-        document.getElementById("load-data").addEventListener("click", () => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = "application/json";
+        // Funktion för att kalla på temporärt sparande
 
-            input.onchange = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
+        let lastSavedData = JSON.stringify({ matchInfo, shots, setPieces }); // Håll reda på senaste sparade datan
+        const saveButton = document.getElementById("save-data"); // Spara-knappen
 
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
+        function hasDataChanged() {
+            const currentData = JSON.stringify({ matchInfo, shots, setPieces });
+            if (currentData !== lastSavedData) {
+                lastSavedData = currentData; // Uppdatera senaste sparade data
+                return true;
+            }
+            return false;
+        }
 
-                        // Kontrollera att nycklarna finns
-                        if (!data.match_info || !data.shots || !data.set_pieces) {
-                            alert("Ogiltigt filformat. Kontrollera att filen innehåller match_info, shots och set_pieces.");
-                            return;
-                        }
+        function indicateSaving(status) {
+            switch (status) {
+                case "saving":
+                    saveButton.style.backgroundColor = "orange"; // Under sparning
+                    saveButton.textContent = "Sparar...";
+                    break;
+                case "saved":
+                    saveButton.style.backgroundColor = "green"; // Sparning klar
+                    saveButton.textContent = "Sparat!";
+                    setTimeout(() => {
+                        saveButton.style.backgroundColor = ""; // Tillbaka till blå (standard)
+                        saveButton.textContent = "Spara";
+                    }, 2000); // Återställ efter 2 sekunder
+                    break;
+                default:
+                    saveButton.style.backgroundColor = ""; // Standard (blå)
+                    saveButton.textContent = "Spara";
+            }
+        }
 
-                        // Ladda matchinfo
-                        matchInfo = { ...data.match_info };
-                        console.log("Matchinfo laddat:", matchInfo);
+        async function trySaveTempToDrive() {
+            if (!hasDataChanged()) return; // Spara endast om data har ändrats
 
-                        // Ladda set pieces
-                        setPieces = { ...data.set_pieces };
-                        console.log("Set pieces laddade:", setPieces);
+            indicateSaving("saving"); // Visa att sparning pågår
 
-                        // Uppdatera inputfält med aktuella värden
-                        syncSetPiecesWithInputs();
-
-                        // Uppdatera knappar baserat på setPieces
-                        updateButtonLabels();
-
-                        // Ladda skott och översätt kategorier
-                        shots.length = 0; // Rensa befintliga skott
-                        shots.push(
-                            ...data.shots.map(shot => ({
-                                ...shot,
-                                category: jsonToCategory[shot.category] || "unknown", // Översätt kategori
-                                fullcategory: shot.category || "unknown" // Översätt kategori
-                            }))
-                        );
-
-                        // Rita om planen med skott
-                        ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa canvas
-                        drawPitch(); // Rita planen igen
-
-                        shots.forEach(shot => {
-                            try {
-                                const displayX = parseFloat(shot.x) * (canvas.width / 100);
-                                const displayY = (60 - parseFloat(shot.y)) * (canvas.height / 60); // Spegelvänd Y för visning
-                                const color = categorySettings[shot.category]?.color || "black";
-
-                                ctx.fillStyle = color;
-                                ctx.beginPath();
-                                ctx.arc(displayX, displayY, 5, 0, 2 * Math.PI);
-                                ctx.fill();
-                            } catch (error) {
-                                console.error(`Fel vid ritning av skott: ${JSON.stringify(shot)}`, error);
-                            }
-                        });
-
-                        alert("Data laddat framgångsrikt!");
-                    } catch (error) {
-                        console.error("Fel vid laddning av data:", error);
-                        alert("Kunde inte läsa in filen. Kontrollera att den har rätt format.");
-                    }
-                };
-
-                reader.readAsText(file);
-            };
-
-            input.click();
-        });
+            try {
+                await saveTempFileToDrive(); // Spara till Google Drive
+                indicateSaving("saved"); // Visa att sparningen lyckades
+            } catch (error) {
+                console.error("Fel vid sparning av temporär fil:", error);
+                alert("Det gick inte att spara temporärt. Kontrollera din anslutning.");
+                indicateSaving(); // Återställ till standard
+            }
+        }
 
         // Koppla funktioner till knappar
         document.getElementById("save-temp").addEventListener("click", saveTempDataToDrive);
