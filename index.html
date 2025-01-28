@@ -59,8 +59,8 @@
             background-color: grey !important;
         }
         /* Standardstil för placeholders */
-        .button-black {
-            background-color: black !important;
+        .button-placeh {
+            background-color: #0056b3 !important;
             color: white;
             border: none;
             border-radius: 5px;
@@ -118,7 +118,7 @@
         <button id="vdif-freekicks">F: 0</button> <!-- Frisparkar VDIF -->
         <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
         <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
-        <button id="placeholder2" class="button-black"></button>
+        <button id="placeholder2" class="button-placeh"></button>
         <button id="fasta-situationer" class="button-grey">Fasta</button> <!-- Ny knapp -->
         <button id="enter-match-info" class="button-grey">Info</button>
         <button id="delete-last-shot" class="button-grey">Ångra</button>
@@ -129,7 +129,7 @@
         <button id="opponent-freekicks">F: 0</button> <!-- Frisparkar Motståndare -->
         <button id="opponent-corners">H: 0</button>   <!-- Hörnor Motståndare -->
         <button id="opponent-penalties">S: 0</button> <!-- Straffar Motståndare -->
-        <button id="placeholder1" class="button-black"></button>
+        <button id="placeholder1" class="button-placeh"></button>
         <button id="init-client">Login</button>
         <button id="save-data" class="button-grey">Spara</button>
         <button id="load-temp" class="button-grey">Ladda</button>
@@ -1022,7 +1022,7 @@
             indicateSaving("saving"); // Visa att sparning pågår
 
             try {
-                await saveTempFileToDrive(); // Spara till Google Drive
+                await saveTempDataToDrive(); // Spara till Google Drive
                 indicateSaving("saved"); // Visa att sparningen lyckades
             } catch (error) {
                 console.error("Fel vid sparning av temporär fil:", error);
