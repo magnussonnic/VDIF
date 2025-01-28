@@ -985,6 +985,7 @@
 
         function indicateSaving(status) {
             const saveButton = document.getElementById("save-data");
+            console.log("Indikerar sparstatus:", status);
             switch (status) {
                 case "saving":
                     saveButton.style.backgroundColor = "orange"; // Under sparning
