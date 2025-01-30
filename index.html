@@ -351,25 +351,17 @@
             // Spara nuvarande ritningsläge
             ctx.save();
 
-            // Skapa en klippmask för hela planen
+            // Rita VÄNSTRA straffområdescirkeln
             ctx.beginPath();
-            ctx.rect(0, 0, width, height); // Täcker hela planen
-
-            // "Stansa ut" straffområdet så det inte påverkas av klippningen
-            ctx.rect(0, penaltyBoxHeight, penaltyBoxWidth, height - 2 * penaltyBoxHeight); // Vänster straffområde
-            ctx.rect(width - penaltyBoxWidth, penaltyBoxHeight, penaltyBoxWidth, height - 2 * penaltyBoxHeight); // Höger straffområde
-            ctx.clip("evenodd"); // Behåll endast det som är utanför straffområdet
-
-            // Rita straffområdescirklarna
-            ctx.beginPath();
-            ctx.arc(penaltySpotDistance, height / 2, penaltyArcRadius, 1.5 * Math.PI, 0.5 * Math.PI, false); // Vänster
+            ctx.arc(penaltySpotDistance, height / 2, penaltyArcRadius, 1.7 * Math.PI, 0.3 * Math.PI, false);
             ctx.stroke();
 
+            // Rita HÖGRA straffområdescirkeln
             ctx.beginPath();
-            ctx.arc(width - penaltySpotDistance, height / 2, penaltyArcRadius, 0.5 * Math.PI, 1.5 * Math.PI, false); // Höger
+            ctx.arc(width - penaltySpotDistance, height / 2, penaltyArcRadius, 0.70 * Math.PI, 1.3 * Math.PI, false);
             ctx.stroke();
 
-            // Återställ ritningsläget (ta bort klippmasken)
+            // Återställ ritningsläget
             ctx.restore();
 
             // Vertikala streckade linjer för zoner
