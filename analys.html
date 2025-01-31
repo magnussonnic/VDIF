@@ -101,13 +101,13 @@
 
     <!-- Knappar på vänster sida -->
     <div id="controls-left">
-        <button id="vdif-freekicks">F: 0</button> <!-- Frisparkar VDIF -->
-        <button id="vdif-corners">H: 0</button>   <!-- Hörnor VDIF -->
-        <button id="vdif-penalties">S: 0</button> <!-- Straffar VDIF -->
+        <button id="vdif-freekicks"></button> <!-- Frisparkar VDIF -->
+        <button id="vdif-corners"></button>   <!-- Hörnor VDIF -->
+        <button id="vdif-penalties"></button> <!-- Straffar VDIF -->
         <button id="placeholder2" class="button-placeh"></button>
-        <button id="fasta-situationer">Fasta</button> <!-- Ny knapp -->
-        <button id="enter-match-info">Info</button>
-        <button id="delete-last-shot">Ångra</button>
+        <button id="fasta-situationer"></button> <!-- Ny knapp -->
+        <button id="enter-match-info"></button>
+        <button id="delete-last-shot"></button>
     </div>
 
     <!-- Knappar på höger sida -->
@@ -206,7 +206,7 @@
             console.error('Knappen med id "init-client" hittades inte.');
         }
 
-        let shots = [];
+        // Se till att shots alltid är definierad globalt
         if (!window.shots) {
             window.shots = [];
         }
@@ -235,20 +235,15 @@
             "Straffar opponent": 0
         };
 
-        window.addEventListener("load", () => {
+        document.getElementById("placeholder1").addEventListener("click", goToRegistration);
 
-            // Ladda skottdata från localStorage
-            shots.length = 0; // Töm arrayen men behåll referensen
-            shots.push(...JSON.parse(localStorage.getItem("shots") || "[]"));
+        function goToRegistration() {
+            window.location.href = "index.html"; // Byt tillbaka till registreringssidan
+        }
 
-            // Skriv ut skottdata för att kontrollera att den är laddad korrekt
-            console.log("Skottdata laddad:", window.shots);
-            console.log("Skottdata laddad:", shots);  // Logga skotten
-
-            // Rita om planen och skotten
-            drawPitch();  // Rita planen på nytt
-            redrawShots();  // Rita om skotten efter att planen har rits
-        });
+        // Ladda skottdata från localStorage
+        window.shots.length = 0; // Töm arrayen men behåll referensen
+        window.shots.push(...JSON.parse(localStorage.getItem("shots") || "[]"));
 
         // Funktion för att uppdatera värden via knappar
         function updateSetPieces(category, delta) {
@@ -534,159 +529,12 @@
             return `${vdifGoals} - ${opponentGoals}`;
         }
 
-        // Klick för att registrera skott
-        canvas.addEventListener("click", (event) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = ((event.clientX - rect.left) * (100 / canvas.width)).toFixed(2);
-            const y = ((event.clientY - rect.top) * (60 / canvas.height)).toFixed(2); // Originalvärde för visning
-
-            const side = determineSide(x);
-            const zone = determineZone(x, y);
-
-            if (!zone) {
-                alert("Skott utanför planen!");
-                return;
-            }
-
-            const category = prompt("Ange kategori (m = Mål, p = Skott på mål, u = Skott utanför mål, b = Blockerat skott, a = Assist, n = Nyckelpass):");
-            if (!category || !categorySettings[category]) {
-                alert("Ogiltig kategori, skott ej registrerat.");
-                return;
-            }
-
-            // Kategorier i rätt format för JSON
-            const formattedCategory = {
-                M: "goal",
-                P: "on goal",
-                U: "miss",
-                B: "blockerat skott",
-                A: "assist",
-                N: "nyckelpass"
-            }[category];
-
-            // Automatisk spelarnamnssättning
-            let playerName = side === "Bortalag" ? "Bortaspelare" : (prompt("Ange spelare:", "") || "Hemmaspelare");
-
-            let matchTime = "";
-            if (formattedCategory === "goal") {
-                matchTime = prompt("Ange matchtid (lämna tomt för okänd tid):", "") || "";
-            }
-
-            let setPieceType = "";
-            if (formattedCategory === "goal") {
-                setPieceType = prompt("Föranleddes målet av en fast situation? (F = Frispark, H = Hörna, S = Straff, tomt = Nej):", "").toLowerCase();
-                if (!["f", "h", "s", ""].includes(setPieceType)) {
-                    setPieceType = "";
-                }
-            }
-
-            let assist = null;
-            if (formattedCategory === "assist") {
-                const goals = shots.filter(s => s.category === "M" && s.side === side);
-                if (goals.length > 0) {
-                    const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
-                    const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
-                    if (goalChoice) {
-                        const selectedGoal = goals[goalChoice - 1];
-                        if (selectedGoal) {
-                            const matchupResult = `${matchInfo.matchup} | ${selectedGoal.result}`;
-                            assist = matchupResult; // Spara som unik identifiering
-                            selectedGoal.assist = matchupResult; // Koppla assist till målet
-                        }
-                    }
-                }
-            }
-
-            const currentResult = getCurrentResult();
-
-            // Uppdatera resultat endast om det är ett mål
-            let newResult = currentResult;
-            if (formattedCategory === "goal") {
-                const [vdifGoals, opponentGoals] = currentResult.split(" - ").map(Number);
-                newResult = side === "VDIF" ? `${vdifGoals + 1} - ${opponentGoals}` : `${vdifGoals} - ${opponentGoals + 1}`;
-            }
-
-            // Skapa skottobjekt
-            const shot = {
-                x: parseFloat(x), // Sparas som flyttal
-                y: parseFloat(60 - y), // Spegelvänd y för att spara i JSON
-                category, // Korta nyckeln för att använda vid ritning
-                fullCategory: formattedCategory, // Fullständiga namnet för JSON-export
-                zone,
-                side,
-                player_name: playerName,
-                match_time: matchTime,
-                result: newResult,
-                assist: assist,
-                set_piece_type: setPieceType
-            };
-
-            shots.push(shot);
-            trySaveTempToDrive(); // Spara temporärt efter ändring
-
-            // Rita skottet på planen
-            ctx.fillStyle = categorySettings[category].color;
-            ctx.beginPath();
-            ctx.arc(x * (canvas.width / 100), y * (canvas.height / 60), 5, 0, 2 * Math.PI);
-            ctx.fill();
-
-            console.log(`Skott registrerat: (${x}, ${y}, kategori: ${formattedCategory}, Resultat: ${newResult}, zon: ${zone}, sida: ${side})`);
-        });
-
-        // Funktion för att radera senaste skott
-        function deleteLastShot() {
-            if (shots.length === 0) {
-                alert("Inga skott att radera.");
-                return;
-            }
-
-            const confirmDelete = confirm("Är du säker på att du vill radera det senaste skottet?");
-            if (!confirmDelete) {
-                return; // Användaren avbröt
-            }
-
-            const lastShot = shots.pop(); // Ta bort senaste skottet från listan
-            console.log(`Senaste skottet raderat:`, lastShot);
-
-            // Rensa planen och rita om
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa hela canvas
-            drawPitch(); // Rita planen igen
-
-            // Rita om alla kvarvarande skott
-            shots.forEach(shot => {
-                try {
-                    const displayX = parseFloat(shot.x) * (canvas.width / 100);
-                    const displayY = (60 - parseFloat(shot.y)) * (canvas.height / 60); // Spegelvänd Y för visning
-
-                    // Hämta rätt färg från `categorySettings`
-                    const color = categorySettings[shot.category]?.color || "black"; // Standardfärg: svart
-
-                    // Rita skottet
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    ctx.arc(displayX, displayY, 5, 0, 2 * Math.PI);
-                    ctx.fill();
-                } catch (error) {
-                    console.error(`Fel vid ritning av skott: ${JSON.stringify(shot)}`, error);
-                }
-            });
-
-            console.log("Kvarvarande skott efter radering:", shots);
-            alert("Senaste skottet har raderats.");
-            trySaveTempToDrive(); // Spara temporärt efter ändring
-        }
-
-        // Eventlyssnare för knappen
-        document.getElementById("delete-last-shot").addEventListener("click", deleteLastShot);
-
         // Rita om skott efter ändrat visningsläge streckade linjer
         function redrawShots() {
-            console.log("Redrawing shots..."); // Logga om funktionen triggas
             shots.forEach(shot => {
                 try {
                     const displayX = parseFloat(shot.x) * (canvas.width / 100);
                     const displayY = (60 - parseFloat(shot.y)) * (canvas.height / 60); // Spegelvänd Y för visning
-                    console.log(`Drawing shot at (${displayX}, ${displayY})`); // Logga koordinaterna
 
                     // Hämta rätt färg från `categorySettings`
                     const color = categorySettings[shot.category]?.color || "black"; // Standardfärg: svart
@@ -1244,13 +1092,6 @@
                 matchInfoButton.style.backgroundColor = ""; // Återställ till standardfärg
                 matchInfoButton.textContent = "Info";
             }
-        }
-
-        document.getElementById("placeholder1").addEventListener("click", goToAnalysis);
-
-        function goToAnalysis() {
-            localStorage.setItem("shots", JSON.stringify(shots)); // Spara skottdata
-            window.location.href = "analys.html"; // Byt sida
         }
 
         function resizeCanvas() {
