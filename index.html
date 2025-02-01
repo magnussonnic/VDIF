@@ -216,6 +216,10 @@
             "P": { label: "Skott på mål", color: "blue" },
             "U": { label: "Skott utanför mål", color: "red" },
             "B": { label: "Blockerat skott", color: "black" },
+            "Nm": { label: "Mål", color: "orange" },
+            "Np": { label: "Skott på mål", color: "blue" },
+            "Nu": { label: "Skott utanför mål", color: "red" },
+            "Nb": { label: "Blockerat skott", color: "black" },
             "A": { label: "Assist", color: "purple" },
             "N": { label: "Nyckelpass", color: "yellow" }
         };
@@ -529,8 +533,8 @@
         }
 
         function getCurrentResult() {
-            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "M").length;
-            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "M").length;
+            const vdifGoals = shots.filter(s => s.side === "VDIF" && s.category === "M" || s.category === "Nm").length;
+            const opponentGoals = shots.filter(s => s.side === "Bortalag" && s.category === "M" || s.category === "Nm").length;
             return `${vdifGoals} - ${opponentGoals}`;
         }
 
@@ -560,6 +564,10 @@
                 P: "on goal",
                 U: "miss",
                 B: "blockerat skott",
+                Nm: "header goal",
+                Np: "header on goal",
+                Nu: "header miss",
+                Nb: "header blocked",
                 A: "assist",
                 N: "nyckelpass"
             }[category];
@@ -568,12 +576,12 @@
             let playerName = side === "Bortalag" ? "Bortaspelare" : (prompt("Ange spelare:", "") || "Hemmaspelare");
 
             let matchTime = "";
-            if (formattedCategory === "goal") {
+            if (formattedCategory === "goal" || formattedCategory === "header goal") {
                 matchTime = prompt("Ange matchtid (lämna tomt för okänd tid):", "") || "";
             }
 
             let setPieceType = "";
-            if (formattedCategory === "goal") {
+            if (formattedCategory === "goal" || formattedCategory === "header goal") {
                 setPieceType = prompt("Föranleddes målet av en fast situation? (F = Frispark, H = Hörna, S = Straff, tomt = Nej):", "").toLowerCase();
                 if (!["f", "h", "s", ""].includes(setPieceType)) {
                     setPieceType = "";
@@ -582,7 +590,7 @@
 
             let assist = null;
             if (formattedCategory === "assist") {
-                const goals = shots.filter(s => s.category === "M" && s.side === side);
+                const goals = shots.filter(s => (s.category === "M" || s.category === "Nm") && s.side === side);
                 if (goals.length > 0) {
                     const goalOptions = goals.map((g, i) => `${i + 1}: ${g.player_name}, ${g.result}`).join("\n");
                     const goalChoice = prompt(`Koppla assist till mål:\n${goalOptions}\nVälj nummer eller lämna tomt för inget.`);
@@ -601,7 +609,7 @@
 
             // Uppdatera resultat endast om det är ett mål
             let newResult = currentResult;
-            if (formattedCategory === "goal") {
+            if (formattedCategory === "goal" || formattedCategory === "header goal") {
                 const [vdifGoals, opponentGoals] = currentResult.split(" - ").map(Number);
                 newResult = side === "VDIF" ? `${vdifGoals + 1} - ${opponentGoals}` : `${vdifGoals} - ${opponentGoals + 1}`;
             }
